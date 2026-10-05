@@ -35,7 +35,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.4"
+VERSION = "1.5"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
@@ -178,7 +178,38 @@ def tts_eleven(text, voice, speed, out_path):
     return {"alignment": res.get("alignment") or res.get("normalized_alignment")}
 
 
+GEMINI_MODELS = {"g31": "google/gemini-3-1-flash-tts", "g38": "google/gemini-3-8-flash-tts",
+                 "g25": "google/gemini-2-5-pro-tts"}
+
+
+def tts_gemini(text, voice, speed, out_path):
+    """voice = 'g31:Charon[:Style]' — Gemini TTS through kie.ai (no word timestamps)."""
+    parts = voice.split(":")
+    model = GEMINI_MODELS[parts[0]]
+    name = parts[1] if len(parts) > 1 else "Charon"
+    style = parts[2] if len(parts) > 2 else ("Promo/Hype" if speed >= 1.05 else "Empathetic")
+    pace = "Rapid Fire" if speed >= 1.15 else "Natural"
+    inp = {"temperature": 1,
+           "scene": "Озвучка короткого вертикального ролика в Instagram на русском языке.",
+           "sample_context": "Живой, уверенный мужской голос рассказчика, чистое русское произношение.",
+           "speakers": [{"speaker_id": "Speaker 1", "voice_name": name,
+                         "audio_profile": "Уверенный русскоязычный рассказчик, говорит с эмоцией",
+                         "accent": "Neutral", "style": style, "pace": pace}],
+           "dialogue_turns": [{"speaker_id": "Speaker 1", "text": text}]}
+    urls, info = kie_task(model, inp, max_wait=600)
+    if not urls:
+        raise RuntimeError(f"no audio for: {text[:40]}")
+    raw = out_path + ".src"
+    with open(raw, "wb") as f:
+        f.write(http_get(urls[0]))
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-b:a", "160k", out_path], check=True)
+    os.remove(raw)
+    return info.get("result") or {}
+
+
 def tts(text, voice, speed, out_path):
+    if voice.split(":")[0] in GEMINI_MODELS:
+        return tts_gemini(text, voice, speed, out_path)
     if ELEVEN_KEY:
         return tts_eleven(text, voice, speed, out_path)
     inp = {"text": text, "voice": voice, "stability": 0.5, "similarity_boost": 0.75, "style": 0,
@@ -249,7 +280,7 @@ def do_voice_samples(text, voices, speed):
     post, d = post_dir("voice-samples")
     res = {}
     for v in voices:
-        name = f"{v.lower()}.mp3"
+        name = "".join(c for c in v.lower() if c.isalnum() or c in "-_") + ".mp3"
         try:
             tts(text, v, speed, os.path.join(d, name))
             res[v] = public_url(post, name)
