@@ -435,7 +435,11 @@ def eleven_models():
     try:
         req = urllib.request.Request("https://api.elevenlabs.io/v1/models", headers={"xi-api-key": ELEVEN_KEY, "User-Agent": EL_UA, "Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=30) as r:
-            return [m.get("model_id") for m in json.loads(r.read().decode())]
+            body = r.read()
+            try:
+                return [m.get("model_id") for m in json.loads(body.decode())]
+            except ValueError:
+                return f"non-json {r.status} {dict(r.headers)}: {body[:300]!r}"
     except Exception as e:
         return f"error: {e}"
 
