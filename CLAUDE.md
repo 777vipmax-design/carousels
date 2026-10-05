@@ -10,7 +10,7 @@
    - Слив денег → шаблон G, совет/цифра → V, много текста → A.
 3. Слайды: `posts/<YYYY-MM-тема>/slides.json` → `python3 tools/render.py posts/.../slides.json posts/...` (нумерация 02–10). Проверить глазами контактный лист: текст не налезает на лицо (лимит y=740 для B/V/G), нет висячих слов.
 4. Обложка (01.png) — полностью генерируется в kie.ai БЕЗ фото автора (он и так есть на слайдах 2–10). Задача обложки — максимальный клик из ленты: кликбейтный, но в рамках правил Instagram заголовок крупно + яркая сцена/предмет по теме. Создать `posts/.../cover_job.json` с `"refs": []` (см. tools/kie_cover.py). Push → GitHub Actions сам генерирует `01.png` через kie.ai (секрет KIE_API_KEY). Ждать завершения run (api.github.com/repos/777vipmax-design/carousels/actions/runs), `git pull`, посмотреть `cover_status.json` и саму картинку (текст без ошибок, читается с телефона). Плохо → удалить 01.png, поправить промт, push заново (каждая генерация ≈18 кредитов).
-5. Postiz: `uploadFromUrlTool` для каждого файла по `https://raw.githubusercontent.com/777vipmax-design/carousels/main/posts/.../NN.png` (01…10 по порядку), затем `integrationSchedulePostTool`: integrationId `cmuve52m806gjql0ykwzahgj3` (instagram-standalone), settings `post_type=post`, контент — подпись в `<p>`. Время в UTC (Москва = UTC+3).
+5. Postiz: `uploadFromUrlTool` для каждого файла по `https://raw.githubusercontent.com/777vipmax-design/carousels/main/posts/.../NN.png` (01…10 по порядку), затем `integrationSchedulePostTool`: integrationId `cmuvju7it09fgmo0y5xxggeok` (instagram через Facebook; музыка — triggerTool audioSearch, только для рилсов), settings `post_type=post`, контент — подпись в `<p>`. Время в UTC (Москва = UTC+3).
 6. Пока пользователь не скажет иначе — ставить `type: draft` и присылать previewUrl.
 
 ## Аудитория (статистика 6 июл – 4 окт 2026)
@@ -35,3 +35,6 @@
 - С чего начинали Wildberries, Магнит, Яндекс (СТАРТ)
 - Айфон в кредит при зарплате 50 000 (СТАТУС)
 - Ранее: «Твой директолог тебе этого не скажет», «Токсичный партнёр», «Яндекс оплатит тебе сайт», «Сайты, которые прячут»
+
+## Рилс-версия карусели
+Кадр 1080×1920, фон #111214, слайд 3:4 уменьшен до ширины 1000 px и поднят (верх на y=150), чтобы текст не попадал под подпись и кнопки Reels (низ от y≈1550, справа x>950). Обложка 2,5 с, текстовые слайды 3–4 с. Музыка — через `audioSearch` в Postiz.
