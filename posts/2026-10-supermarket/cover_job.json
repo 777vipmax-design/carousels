@@ -1,0 +1,7 @@
+{
+  "prompt": "Edit the reference photo. Do NOT change the person, his face, body, pose, clothes or the dark background — keep them exactly as in the original photo. Only add text in the empty dark area above the person: huge bold sans-serif text in Russian. White: \"ЗАШЁЛ ЗА ХЛЕБОМ —\", below in red (#FF3B30): \"ВЫШЕЛ С ПАКЕТОМ\". Small white text under it: \"6 трюков супермаркета — листай →\". Text must not cover the face or hands. Very high contrast, readable on phone. Vertical 3:4.",
+  "refs": ["templates/B_derzhit.png"],
+  "aspect_ratio": "3:4",
+  "resolution": "2K",
+  "model": "nano-banana-pro"
+}
