@@ -4,5 +4,6 @@
  "aspect_ratio": "3:4",
  "resolution": "2K",
  "model": "nano-banana-pro",
- "retry": 1
+ "retry": 2,
+ "out": "01_kie.png"
 }
