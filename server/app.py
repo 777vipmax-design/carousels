@@ -34,7 +34,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.1"
+VERSION = "1.2"
 
 BG = (17, 18, 20)
 RED = (255, 59, 48)
@@ -432,6 +432,16 @@ def tool_put_file(a):
     return text_result(public_url(post, name))
 
 
+def do_kie_raw(model, inp):
+    urls, info = kie_task(model, inp, max_wait=600)
+    return {"urls": urls, "info": info}
+
+
+def tool_kie_raw(a):
+    jid = start_job("raw", do_kie_raw, a["model"], a.get("input") or {})
+    return text_result(f"job_id: {jid}")
+
+
 def text_result(t, err=False):
     return {"content": [{"type": "text", "text": t}], "isError": err}
 
@@ -458,6 +468,8 @@ TOOLS = {
                    "required": ["slide", "say"]}},
                voice={"type": "string"}, speed={"type": "number"}, gap={"type": "number"},
                slides_base={"type": "string"})),
+    "kie_raw": (tool_kie_raw, "Отладка: произвольная задача kie.ai (model + input), результат через job.",
+                S(model={"type": "string", "_req": True}, input={"type": "object", "_req": True})),
     "job": (tool_job, "Статус фоновой задачи и результат (с превью картинок).", S(job_id={"type": "string", "_req": True})),
     "files": (tool_files, "Публичные ссылки на файлы поста.", S(post={"type": "string", "_req": True})),
     "put_file": (tool_put_file, "Скачать файл по URL в папку поста (чтобы отдать его по ссылке сервера).",
