@@ -91,12 +91,20 @@ def render(spec, out, dry=False):
             y = draw_text(d, M, y, el[1], font('Medium', s), col, TW, int(s * 1.32), dry)
         elif k == 'stat':
             ss = el[3] if len(el) > 3 else 150
+            txt = el[1].replace('_', ' ')
             f = font('Black', ss)
-            if not dry: d.text((M - 6, y - int(ss * .2)), el[1], font=f, fill=RED)
-            sw = f.getlength(el[1]) + 34
+            if not dry: d.text((M - 6, y - int(ss * .2)), txt, font=f, fill=RED)
+            sw = f.getlength(txt) + 34
             cf = font('SemiBold', 38)
-            yy = draw_text(d, M + sw, y + 8, el[2], cf, WHITE, TW - sw, 48, dry)
-            y = max(y + int(ss * .85), yy)
+            if el[2] and sw > TW * 0.45:
+                # caption under the number when the number is wide
+                y = draw_text(d, M, y + int(ss * .85), el[2], cf, WHITE, TW, 48, dry) + 6
+            elif el[2]:
+                yy = draw_text(d, M + sw, y + 8, el[2], cf, WHITE, TW - sw, 48, dry)
+                y = max(y + int(ss * .85), yy)
+            else:
+                y += int(ss * .85)
+            y += 8
         elif k == 'src':
             y = draw_text(d, M, y, el[1], font('Medium', 27), (140,142,148), TW, 36, dry)
         elif k == 'check':
