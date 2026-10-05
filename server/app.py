@@ -35,7 +35,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.5"
+VERSION = "1.6"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
@@ -160,8 +160,12 @@ def do_cover(post, prompt, refs, aspect_ratio, resolution, out):
 # ---------------------------------------------------------------- voice
 
 def tts_eleven(text, voice, speed, out_path):
-    """Direct ElevenLabs API with character timestamps (for subtitles)."""
-    body = {"text": text, "model_id": ELEVEN_MODEL,
+    """Direct ElevenLabs API with character timestamps (for subtitles).
+    voice = 'VOICE_ID' or 'MODEL_ID|VOICE_ID'."""
+    model = ELEVEN_MODEL
+    if "|" in voice:
+        model, voice = voice.split("|", 1)
+    body = {"text": text, "model_id": model,
             "voice_settings": {"stability": 0.45, "similarity_boost": 0.75, "style": 0.2,
                                "use_speaker_boost": True, "speed": speed}}
     req = urllib.request.Request(
@@ -280,7 +284,7 @@ def do_voice_samples(text, voices, speed):
     post, d = post_dir("voice-samples")
     res = {}
     for v in voices:
-        name = "".join(c for c in v.lower() if c.isalnum() or c in "-_") + ".mp3"
+        name = "".join(c for c in v.split("|")[-1].lower() if c.isalnum() or c in "-_") + ".mp3"
         try:
             tts(text, v, speed, os.path.join(d, name))
             res[v] = public_url(post, name)
@@ -411,6 +415,17 @@ def do_reel(post, lines, voice, speed, gap, slides_base):
 
 # ---------------------------------------------------------------- tools
 
+def eleven_models():
+    if not ELEVEN_KEY:
+        return None
+    try:
+        req = urllib.request.Request("https://api.elevenlabs.io/v1/models", headers={"xi-api-key": ELEVEN_KEY})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return [m.get("model_id") for m in json.loads(r.read().decode())]
+    except Exception as e:
+        return f"error: {e}"
+
+
 def tool_status(_):
     du = shutil.disk_usage(FILES_DIR)
     mem = open("/proc/meminfo").read().split("\n")[:3]
@@ -419,7 +434,7 @@ def tool_status(_):
     with JOBS_LOCK:
         running = [j["id"] + ":" + j["kind"] for j in JOBS.values() if j["state"] == "running"]
     return text_result(json.dumps({
-        "version": VERSION, "repo": rev, "tts": "elevenlabs-direct" if ELEVEN_KEY else "kie", "domain": DOMAIN, "kie_key": bool(KIE_KEY),
+        "version": VERSION, "repo": rev, "tts": "elevenlabs-direct" if ELEVEN_KEY else "kie", "eleven_models": eleven_models(), "domain": DOMAIN, "kie_key": bool(KIE_KEY),
         "disk_free_gb": round(du.free / 1e9, 1), "mem": mem, "running_jobs": running},
         ensure_ascii=False, indent=1))
 
