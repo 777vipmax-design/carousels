@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.8"
+VERSION = "1.9"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 EL_UA = "elevenlabs-python/2.16.0 carousel-server"
@@ -188,18 +188,30 @@ GEMINI_MODELS = {"g31": "google/gemini-3-1-flash-tts", "g38": "google/gemini-3-8
                  "g25": "google/gemini-2-5-pro-tts"}
 
 
+GEMINI_PROFILES = {
+    "": ("Уверенный русскоязычный рассказчик, говорит с эмоцией",
+         "Живой, уверенный мужской голос рассказчика, чистое русское произношение."),
+    "raspy": ("Низкий грубоватый мужской голос с заметной хрипотцой, дерзкий, ироничный, с усмешкой",
+              "Бывалый уверенный мужик рассказывает другу неприятную правду о деньгах: хрипловато, "
+              "с сарказмом и паузами для эффекта, чистое русское произношение."),
+    "rough": ("Низкий, плотный, хриплый мужской голос, энергичный и напористый",
+              "Жёсткий мотивирующий монолог: напор, хрипотца, короткие рубленые фразы, чистое русское произношение."),
+}
+
+
 def tts_gemini(text, voice, speed, out_path):
     """voice = 'g31:Charon[:Style]' — Gemini TTS through kie.ai (no word timestamps)."""
     parts = voice.split(":")
     model = GEMINI_MODELS[parts[0]]
     name = parts[1] if len(parts) > 1 else "Charon"
-    style = parts[2] if len(parts) > 2 else ("Promo/Hype" if speed >= 1.05 else "Empathetic")
+    style = parts[2] if len(parts) > 2 and parts[2] else ("Promo/Hype" if speed >= 1.05 else "Empathetic")
+    prof = GEMINI_PROFILES.get(parts[3] if len(parts) > 3 else "", GEMINI_PROFILES[""])
     pace = "Rapid Fire" if speed >= 1.15 else "Natural"
     inp = {"temperature": 1,
            "scene": "Озвучка короткого вертикального ролика в Instagram на русском языке.",
-           "sample_context": "Живой, уверенный мужской голос рассказчика, чистое русское произношение.",
+           "sample_context": prof[1],
            "speakers": [{"speaker_id": "Speaker 1", "voice_name": name,
-                         "audio_profile": "Уверенный русскоязычный рассказчик, говорит с эмоцией",
+                         "audio_profile": prof[0],
                          "accent": "Neutral", "style": style, "pace": pace}],
            "dialogue_turns": [{"speaker_id": "Speaker 1", "text": text}]}
     urls, info = kie_task(model, inp, max_wait=600)
