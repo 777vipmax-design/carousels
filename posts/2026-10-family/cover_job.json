@@ -3,5 +3,6 @@
  "refs": [],
  "aspect_ratio": "3:4",
  "resolution": "2K",
- "model": "nano-banana-pro"
+ "model": "nano-banana-pro",
+ "retry": 1
 }
