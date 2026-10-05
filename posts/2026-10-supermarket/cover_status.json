@@ -1,0 +1,16 @@
+{
+ "job": "posts/2026-10-supermarket/cover_job.json",
+ "taskId": "ec449e8e67839817e1f4298e6edeb8e2",
+ "create": {
+  "code": 200,
+  "msg": "success",
+  "data": {
+   "taskId": "ec449e8e67839817e1f4298e6edeb8e2",
+   "recordId": "ec449e8e67839817e1f4298e6edeb8e2"
+  }
+ },
+ "state": "success",
+ "failMsg": null,
+ "credits": 18.0,
+ "file": "posts/2026-10-supermarket/01.png"
+}
