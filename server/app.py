@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "2.0"
+VERSION = "2.1"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 EL_UA = "elevenlabs-python/2.16.0 carousel-server"
@@ -199,6 +199,21 @@ GEMINI_PROFILES = {
 }
 
 
+_RUBBERBAND = None
+
+
+def tempo_filter(speed):
+    """Speed up speech without changing the voice: rubberband keeps pitch and formants
+    (atempo is the fallback and can sound 'thinner' at 1.4+)."""
+    global _RUBBERBAND
+    if _RUBBERBAND is None:
+        out = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True).stdout
+        _RUBBERBAND = " rubberband " in out
+    if _RUBBERBAND:
+        return f"rubberband=tempo={speed:.3f}:pitchq=quality:formant=preserved:transients=smooth:detector=soft"
+    return f"atempo={speed:.3f}"
+
+
 def tts_gemini(text, voice, speed, out_path):
     """voice = 'g31:Charon[:Style]' — Gemini TTS through kie.ai (no word timestamps)."""
     parts = voice.split(":")
@@ -207,7 +222,7 @@ def tts_gemini(text, voice, speed, out_path):
     style = parts[2] if len(parts) > 2 and parts[2] else ("Promo/Hype" if speed >= 1.05 else "Empathetic")
     prof = GEMINI_PROFILES.get(parts[3] if len(parts) > 3 else "", GEMINI_PROFILES[""])
     pace = "Natural"
-    inp = {"temperature": 1,
+    inp = {"temperature": 0.7,
            "scene": "Озвучка короткого вертикального ролика в Instagram на русском языке.",
            "sample_context": prof[1],
            "speakers": [{"speaker_id": "Speaker 1", "voice_name": name,
@@ -220,7 +235,7 @@ def tts_gemini(text, voice, speed, out_path):
     raw = out_path + ".src"
     with open(raw, "wb") as f:
         f.write(http_get(urls[0]))
-    af = ["-af", f"atempo={speed:.3f}"] if abs(speed - 1) > 0.01 else []
+    af = ["-af", tempo_filter(speed)] if abs(speed - 1) > 0.01 else []
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, *af, "-b:a", "160k", out_path], check=True)
     os.remove(raw)
     return info.get("result") or {}
