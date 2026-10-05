@@ -215,7 +215,13 @@ def tts_gemini(text, voice, speed, out_path):
 
 def tts(text, voice, speed, out_path):
     if voice.split(":")[0] in GEMINI_MODELS:
-        return tts_gemini(text, voice, speed, out_path)
+        for attempt in range(3):  # kie sometimes answers "internal error"
+            try:
+                return tts_gemini(text, voice, speed, out_path)
+            except Exception:  # noqa: BLE001
+                if attempt == 2:
+                    raise
+                time.sleep(5)
     if ELEVEN_KEY:
         return tts_eleven(text, voice, speed, out_path)
     inp = {"text": text, "voice": voice, "stability": 0.5, "similarity_boost": 0.75, "style": 0,
