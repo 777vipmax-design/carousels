@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import traceback
+import urllib.error
 import urllib.request
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -34,8 +35,10 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.3"
+VERSION = "1.4"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
+ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
 
 BG = (17, 18, 20)
 RED = (255, 59, 48)
@@ -156,7 +159,28 @@ def do_cover(post, prompt, refs, aspect_ratio, resolution, out):
 
 # ---------------------------------------------------------------- voice
 
+def tts_eleven(text, voice, speed, out_path):
+    """Direct ElevenLabs API with character timestamps (for subtitles)."""
+    body = {"text": text, "model_id": ELEVEN_MODEL,
+            "voice_settings": {"stability": 0.45, "similarity_boost": 0.75, "style": 0.2,
+                               "use_speaker_boost": True, "speed": speed}}
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/with-timestamps?output_format=mp3_44100_128",
+        data=json.dumps(body).encode(), method="POST",
+        headers={"xi-api-key": ELEVEN_KEY, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            res = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"ElevenLabs {e.code}: {e.read().decode()[:300]}") from None
+    with open(out_path, "wb") as f:
+        f.write(base64.b64decode(res["audio_base64"]))
+    return {"alignment": res.get("alignment") or res.get("normalized_alignment")}
+
+
 def tts(text, voice, speed, out_path):
+    if ELEVEN_KEY:
+        return tts_eleven(text, voice, speed, out_path)
     inp = {"text": text, "voice": voice, "stability": 0.5, "similarity_boost": 0.75, "style": 0,
            "speed": speed, "timestamps": TTS_TIMESTAMPS, "previous_text": "", "next_text": "",
            "language_code": ""}
@@ -364,7 +388,7 @@ def tool_status(_):
     with JOBS_LOCK:
         running = [j["id"] + ":" + j["kind"] for j in JOBS.values() if j["state"] == "running"]
     return text_result(json.dumps({
-        "version": VERSION, "repo": rev, "domain": DOMAIN, "kie_key": bool(KIE_KEY),
+        "version": VERSION, "repo": rev, "tts": "elevenlabs-direct" if ELEVEN_KEY else "kie", "domain": DOMAIN, "kie_key": bool(KIE_KEY),
         "disk_free_gb": round(du.free / 1e9, 1), "mem": mem, "running_jobs": running},
         ensure_ascii=False, indent=1))
 
