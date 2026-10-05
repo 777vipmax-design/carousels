@@ -11,6 +11,7 @@ Config comes from /etc/carousel.env (see install.sh).
 import base64
 import io
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -35,7 +36,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.6"
+VERSION = "1.7"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
@@ -251,13 +252,21 @@ def find_alignment(obj):
 
 def word_times(text, duration, result):
     """Return [(word, start, end)] using alignment if available, else by length."""
-    words = text.split()
+    words = re.sub(r"\[[^\]]*\]", " ", text).split()
     al = find_alignment(result)
     if al:
         chars, starts = al["characters"], al["character_start_times_seconds"]
         ends = al.get("character_end_times_seconds", starts)
-        out, cur, cs, ce = [], "", None, None
+        out, cur, cs, ce, depth = [], "", None, None, 0
         for ch, s, e in zip(chars, starts, ends):
+            if ch == "[":  # audio tags like [excited] are not shown in subtitles
+                depth += 1
+                continue
+            if ch == "]":
+                depth = max(0, depth - 1)
+                continue
+            if depth:
+                continue
             if ch.isspace():
                 if cur:
                     out.append((cur, cs, ce))
@@ -320,6 +329,8 @@ def base_frame(slide_img):
 
 def draw_sub(frame, text, top):
     im = frame.copy()
+    if not text:
+        return im
     d = ImageDraw.Draw(im)
     f = font("Black", 64)
     lines, cur = [], ""
@@ -369,7 +380,9 @@ def do_reel(post, lines, voice, speed, gap, slides_base):
             dur = probe_duration(apath)
             seg = dur + gap
             frame, sub_top = base_frame(imgs[ln["slide"]])
-            chunks = chunk_words(word_times(ln.get("sub") or ln["say"], dur, res))
+            chunks = [] if ln.get("nosub") else chunk_words(word_times(ln.get("sub") or ln["say"], dur, res))
+            if not chunks:
+                chunks = [("", 0.0, seg)]
             t = 0.0
             for j, (txt, s, e) in enumerate(chunks):
                 end = chunks[j + 1][1] if j + 1 < len(chunks) else seg
