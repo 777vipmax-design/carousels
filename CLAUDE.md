@@ -49,6 +49,8 @@
 - Код: server/app.py (MCP без зависимостей), установка server/install.sh. Коннектор «Carousel»: cover / voice_samples / reel / job / files / put_file / status / update / logs.
 - Обновить сервер после правок в server/: push → инструмент update.
 - Firewall Timeweb не настроен (ничего не блокирует).
+- Обложки через сервер работают (cover → job, ~50 с, 18 кредитов). Обложку отдавать в Postiz по ссылке https://72-56-19-35.sslip.io/f/<post>/<файл>.
+- Озвучка kie.ai (elevenlabs/text-to-speech-multilingual-v2): voice — это КОД голоса из списка kie (например Brian = nPczCjzI2devNBz1zQrb, Liam = TX3LPaxmHKxFdv7VOQHJ), не имя. 05.10 вечером kie отвечал «Internal Error» даже на свой пример с Rachel — сбой на их стороне, повторить позже.
 
 ## Озвучка рилсов (правила пользователя)
 - Голос читает ВЕСЬ текст слайда (без источников мелким шрифтом), слайд держится ровно столько, сколько длится озвучка. Субтитры = тот же текст.
