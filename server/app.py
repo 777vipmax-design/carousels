@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.9"
+VERSION = "2.0"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 EL_UA = "elevenlabs-python/2.16.0 carousel-server"
@@ -206,7 +206,7 @@ def tts_gemini(text, voice, speed, out_path):
     name = parts[1] if len(parts) > 1 else "Charon"
     style = parts[2] if len(parts) > 2 and parts[2] else ("Promo/Hype" if speed >= 1.05 else "Empathetic")
     prof = GEMINI_PROFILES.get(parts[3] if len(parts) > 3 else "", GEMINI_PROFILES[""])
-    pace = "Rapid Fire" if speed >= 1.15 else "Natural"
+    pace = "Natural"
     inp = {"temperature": 1,
            "scene": "Озвучка короткого вертикального ролика в Instagram на русском языке.",
            "sample_context": prof[1],
@@ -220,7 +220,8 @@ def tts_gemini(text, voice, speed, out_path):
     raw = out_path + ".src"
     with open(raw, "wb") as f:
         f.write(http_get(urls[0]))
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-b:a", "160k", out_path], check=True)
+    af = ["-af", f"atempo={speed:.3f}"] if abs(speed - 1) > 0.01 else []
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", raw, *af, "-b:a", "160k", out_path], check=True)
     os.remove(raw)
     return info.get("result") or {}
 
@@ -336,8 +337,21 @@ def chunk_words(wt, max_chars=22):
     return [(" ".join(x[0] for x in c), c[0][1], c[-1][2]) for c in chunks]
 
 
-def base_frame(slide_img):
+def base_frame(slide_img, layout="fit"):
+    """fit  — slide 920 px wide, subtitles under it on the dark background.
+    full — slide edge to edge (1080 px), subtitles over the lower part of the picture.
+    A 9:16 image (generated cover) always fills the whole frame."""
     s = slide_img.convert("RGB")
+    if s.height / s.width > 1.6:
+        s = s.resize((W, H), Image.LANCZOS)
+        return s, 1180
+    if layout == "full":
+        sh = round(s.height * W / s.width)
+        s = s.resize((W, sh), Image.LANCZOS)
+        f = Image.new("RGB", (W, H), BG)
+        top = 110
+        f.paste(s, (0, top))
+        return f, top + sh - 330
     sw = 920
     sh = round(s.height * sw / s.width)
     s = s.resize((sw, sh), Image.LANCZOS)
@@ -371,7 +385,7 @@ def draw_sub(frame, text, top):
     return im
 
 
-def do_reel(post, lines, voice, speed, gap, slides_base):
+def do_reel(post, lines, voice, speed, gap, slides_base, layout="fit"):
     post, d = post_dir(post)
     work = tempfile.mkdtemp(prefix="reel-")
     try:
@@ -398,7 +412,7 @@ def do_reel(post, lines, voice, speed, gap, slides_base):
         for i, (ln, (apath, res)) in enumerate(zip(lines, results)):
             dur = probe_duration(apath)
             seg = dur + gap
-            frame, sub_top = base_frame(imgs[ln["slide"]])
+            frame, sub_top = base_frame(imgs[ln["slide"]], ln.get("layout", layout))
             chunks = [] if ln.get("nosub") else chunk_words(word_times(ln.get("sub") or ln["say"], dur, res))
             if not chunks:
                 chunks = [("", 0.0, seg)]
@@ -501,8 +515,8 @@ def tool_voice_samples(a):
 
 def tool_reel(a):
     base = a.get("slides_base") or f"{RAW_BASE}/posts/{a['post']}"
-    jid = start_job("reel", do_reel, a["post"], a["lines"], a.get("voice", "Brian"),
-                    float(a.get("speed", 1.05)), float(a.get("gap", 0.35)), base)
+    jid = start_job("reel", do_reel, a["post"], a["lines"], a.get("voice", "g31:Gacrux:Promo/Hype"),
+                    float(a.get("speed", 1.25)), float(a.get("gap", 0.2)), base, a.get("layout", "fit"))
     return text_result(f"job_id: {jid} — сборка занимает 2–5 минут")
 
 
@@ -569,13 +583,14 @@ TOOLS = {
                       S(text={"type": "string", "_req": True},
                         voices={"type": "array", "items": {"type": "string"}, "_req": True},
                         speed={"type": "number"})),
-    "reel": (tool_reel, "Собрать рилс 9:16: слайды + озвучка ElevenLabs + субтитры. lines = [{slide:'01'..'10', say:'текст озвучки', sub?:'текст субтитров'}]. Слайды берутся из папки поста на сервере, иначе из GitHub (posts/<post>/NN.png).",
+    "reel": (tool_reel, "Собрать рилс 9:16: слайды + озвучка + субтитры. lines = [{slide:'01'..'10' или имя файла без .png, say:'текст озвучки', sub?:'текст субтитров', nosub?:true, layout?:'fit'|'full'}]. layout fit — слайд с полями, субтитры под ним; full — слайд на всю ширину, субтитры поверх. Картинка 9:16 (обложка) — на весь экран. speed по умолчанию 1.25. Слайды берутся из папки поста на сервере, иначе из GitHub (posts/<post>/NN.png).",
              S(post={"type": "string", "_req": True},
                lines={"type": "array", "_req": True, "items": {"type": "object", "properties": {
-                   "slide": {"type": "string"}, "say": {"type": "string"}, "sub": {"type": "string"}},
+                   "slide": {"type": "string"}, "say": {"type": "string"}, "sub": {"type": "string"},
+                   "nosub": {"type": "boolean"}, "layout": {"type": "string"}},
                    "required": ["slide", "say"]}},
                voice={"type": "string"}, speed={"type": "number"}, gap={"type": "number"},
-               slides_base={"type": "string"})),
+               slides_base={"type": "string"}, layout={"type": "string"})),
     "kie_raw": (tool_kie_raw, "Отладка: произвольная задача kie.ai (model + input), результат через job.",
                 S(model={"type": "string", "_req": True}, input={"type": "object", "_req": True})),
     "job": (tool_job, "Статус фоновой задачи и результат (с превью картинок).", S(job_id={"type": "string", "_req": True})),
