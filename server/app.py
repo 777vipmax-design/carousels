@@ -36,9 +36,10 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.7"
+VERSION = "1.8"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+EL_UA = "elevenlabs-python/2.16.0 carousel-server"
 ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
 
 BG = (17, 18, 20)
@@ -172,7 +173,7 @@ def tts_eleven(text, voice, speed, out_path):
     req = urllib.request.Request(
         f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/with-timestamps?output_format=mp3_44100_128",
         data=json.dumps(body).encode(), method="POST",
-        headers={"xi-api-key": ELEVEN_KEY, "Content-Type": "application/json"})
+        headers={"xi-api-key": ELEVEN_KEY, "User-Agent": EL_UA, "Accept": "application/json", "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=180) as r:
             res = json.loads(r.read().decode())
@@ -293,7 +294,7 @@ def do_voice_samples(text, voices, speed):
     post, d = post_dir("voice-samples")
     res = {}
     for v in voices:
-        name = "".join(c for c in v.split("|")[-1].lower() if c.isalnum() or c in "-_") + ".mp3"
+        name = "".join(c for c in v.lower().replace("|", "-") if c.isalnum() or c in "-_") + ".mp3"
         try:
             tts(text, v, speed, os.path.join(d, name))
             res[v] = public_url(post, name)
@@ -432,7 +433,7 @@ def eleven_models():
     if not ELEVEN_KEY:
         return None
     try:
-        req = urllib.request.Request("https://api.elevenlabs.io/v1/models", headers={"xi-api-key": ELEVEN_KEY})
+        req = urllib.request.Request("https://api.elevenlabs.io/v1/models", headers={"xi-api-key": ELEVEN_KEY, "User-Agent": EL_UA, "Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=30) as r:
             return [m.get("model_id") for m in json.loads(r.read().decode())]
     except Exception as e:
