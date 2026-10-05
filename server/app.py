@@ -34,7 +34,8 @@ PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "1.2"
+VERSION = "1.3"
+TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 
 BG = (17, 18, 20)
 RED = (255, 59, 48)
@@ -156,9 +157,10 @@ def do_cover(post, prompt, refs, aspect_ratio, resolution, out):
 # ---------------------------------------------------------------- voice
 
 def tts(text, voice, speed, out_path):
-    urls, info = kie_task("elevenlabs/text-to-speech-multilingual-v2", {
-        "text": text, "voice": voice, "speed": speed, "stability": 0.5,
-        "similarity_boost": 0.75, "timestamps": True}, max_wait=600)
+    inp = {"text": text, "voice": voice, "stability": 0.5, "similarity_boost": 0.75, "style": 0,
+           "speed": speed, "timestamps": TTS_TIMESTAMPS, "previous_text": "", "next_text": "",
+           "language_code": ""}
+    urls, info = kie_task("elevenlabs/text-to-speech-multilingual-v2", inp, max_wait=600)
     if not urls:
         raise RuntimeError(f"no audio for: {text[:40]}")
     with open(out_path, "wb") as f:
