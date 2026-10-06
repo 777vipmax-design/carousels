@@ -65,7 +65,10 @@ def fmt_num(n):
 
 
 def words_with_times(text, start, dur):
-    words = re.sub(r"\[[^\]]*\]", " ", text).split()
+    text = re.sub(r"\[[^\]]*\]", " ", text)
+    text = re.sub(r"(?<=\d) (?=\d{3}\b)", "\u00a0", text)       # 267 300 stays together
+    text = re.sub(r" (₽|%|руб\.?)(?=[\s.,!?]|$)", "\u00a0\\1", text)  # 300 ₽ stays together
+    words = [w for w in re.split(r"[ \t\n]+", text) if w]
     total = sum(len(w) + 2 for w in words) or 1
     t, out = start, []
     for w in words:
