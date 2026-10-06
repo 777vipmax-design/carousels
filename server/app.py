@@ -38,7 +38,7 @@ RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipm
 KIE_API = "https://api.kie.ai/api/v1/jobs"
 PIXABAY_KEY = os.environ.get("PIXABAY_KEY", "")
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "2.3"
+VERSION = "2.4"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 EL_UA = "elevenlabs-python/2.16.0 carousel-server"
@@ -529,6 +529,57 @@ def tool_stock(a):
     return text_result(json.dumps(res, ensure_ascii=False, indent=1))
 
 
+def do_story(post, scenes, voice, speed):
+    import story
+    post, d = post_dir(post)
+    work = tempfile.mkdtemp(prefix="story-")
+    try:
+        futs = []
+        for i, sc in enumerate(scenes):
+            p = os.path.join(work, f"v{i:02d}.mp3")
+            futs.append((p, TTS_POOL.submit(tts, sc["say"], voice, speed, p)))
+        voices = [p for p, f in futs if f.result() is not None or True]
+        used, clip_files, picked = set(), [], []
+        for i, sc in enumerate(scenes):
+            files = []
+            urls = list(sc.get("clips") or [])
+            if not urls and sc.get("q"):
+                for h in pixabay_videos(sc["q"], 15):
+                    if h["url"] and h["id"] not in used and (h.get("dur") or 0) >= 3:
+                        urls.append(h["url"])
+                        used.add(h["id"])
+                        picked.append({"scene": i, "id": h["id"], "tags": h["tags"]})
+                    if len(urls) >= int(sc.get("n", 2)):
+                        break
+            for j, u in enumerate(urls):
+                fp = os.path.join(work, f"c{i:02d}_{j}.mp4")
+                with open(fp, "wb") as f:
+                    f.write(http_get(u, timeout=180))
+                files.append((fp, probe_duration(fp)))
+            clip_files.append(files)
+        if not any(clip_files):
+            raise RuntimeError("no stock clips found")
+        out = os.path.join(d, "reel.mp4")
+        res = story.render(scenes, voices, clip_files, out, work)
+        prev_dir = os.path.join(d, "_preview")
+        os.makedirs(prev_dir, exist_ok=True)
+        previews = []
+        for k, pth in enumerate(res["previews"]):
+            dst = os.path.join(prev_dir, f"frame{k}.jpg")
+            shutil.copy(pth, dst)
+            previews.append(dst)
+        return {"url": public_url(post, "reel.mp4"), "seconds": res["seconds"], "shots": res["shots"],
+                "clips": picked, "previews": previews}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def tool_story(a):
+    jid = start_job("reel", do_story, a["post"], a["scenes"], a.get("voice", "g31:Gacrux:Promo/Hype:loud"),
+                    float(a.get("speed", 1.15)))
+    return text_result(f"job_id: {jid} — сборка 3–8 минут")
+
+
 def tool_status(_):
     du = shutil.disk_usage(FILES_DIR)
     mem = open("/proc/meminfo").read().split("\n")[:3]
@@ -648,6 +699,12 @@ TOOLS = {
                 S(model={"type": "string", "_req": True}, input={"type": "object", "_req": True})),
     "job": (tool_job, "Статус фоновой задачи и результат (с превью картинок).", S(job_id={"type": "string", "_req": True})),
     "files": (tool_files, "Публичные ссылки на файлы поста.", S(post={"type": "string", "_req": True})),
+    "story": (tool_story, "Сюжетный рилс без лица: стоковые видео Pixabay + эмоциональная озвучка + монтаж кодом "
+                          "(смена кадра ~2.6 с, наезды, субтитры с подсветкой слова, счётчик цифр, звуки, полоса прогресса). "
+                          "scenes = [{say, sub?, q (англ. запрос в сток) | clips:[url], title?, big?, count?, suffix?, hit?, n?}]",
+              S(post={"type": "string", "_req": True},
+                scenes={"type": "array", "_req": True, "items": {"type": "object"}},
+                voice={"type": "string"}, speed={"type": "number"})),
     "stock": (tool_stock, "Поиск стоковых видео Pixabay (q на английском). Возвращает ссылки, размеры, длительность, теги.",
               S(q={"type": "string", "_req": True}, n={"type": "integer"})),
     "put_file": (tool_put_file, "Скачать файл по URL в папку поста (чтобы отдать его по ссылке сервера).",
