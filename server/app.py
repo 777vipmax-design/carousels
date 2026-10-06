@@ -620,6 +620,8 @@ def tool_voice_samples(a):
 
 
 def tool_reel(a):
+    if a.get("stock_q"):  # stock search mode
+        return tool_stock({"q": a["stock_q"], "n": a.get("n", 8)})
     if a.get("scenes"):  # story mode (new tools may be hidden by the client's tool cache)
         return tool_story(a)
     base = a.get("slides_base") or f"{RAW_BASE}/posts/{a['post']}"

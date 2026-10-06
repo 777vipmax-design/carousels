@@ -93,7 +93,7 @@ def build_ass(scenes, timeline, total):
 ScriptType: v4.00+
 PlayResX: {W}
 PlayResY: {H}
-WrapStyle: 2
+WrapStyle: 0
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
@@ -101,7 +101,7 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: Sub,Inter Black,92,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,7,3,5,60,60,0,1
 Style: Big,Inter Black,170,&H00303BFF,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,9,4,5,40,40,0,1
 Style: Src,Inter Medium,38,&H00E6E6E6,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,3,1,5,40,40,0,1
-Style: Title,Inter Black,104,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,8,4,8,60,60,230,1
+Style: Title,Inter Black,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,8,4,8,60,60,230,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -126,7 +126,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             ev.append(f"Dialogue: 2,{ts(s0 + 0.2)},{ts(s1)},Src,,0,0,0,,{{\\pos({W // 2},960)}}{esc(sc['src'])}")
         # hook title on top
         if sc.get("title"):
-            ev.append(f"Dialogue: 2,{ts(s0)},{ts(s1)},Title,,0,0,0,,{pop}{esc(sc['title'])}")
+            title = esc(sc["title"]).replace(" vs ", "\\Nvs ").replace("|", "\\N")
+            ev.append(f"Dialogue: 2,{ts(s0)},{ts(s1)},Title,,0,0,0,,{pop}{title}")
         # big number / word in the middle
         if sc.get("count") is not None:
             n, suf, steps = float(sc["count"]), sc.get("suffix", ""), 18
