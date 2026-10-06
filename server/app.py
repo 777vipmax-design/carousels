@@ -575,6 +575,8 @@ def do_story(post, scenes, voice, speed):
 
 
 def tool_story(a):
+    if isinstance(a.get("scenes"), str):
+        a["scenes"] = json.loads(a["scenes"])
     jid = start_job("reel", do_story, a["post"], a["scenes"], a.get("voice", "g31:Gacrux:Promo/Hype:loud"),
                     float(a.get("speed", 1.15)))
     return text_result(f"job_id: {jid} — сборка 3–8 минут")
