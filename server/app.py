@@ -20,6 +20,7 @@ import threading
 import time
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -35,8 +36,9 @@ REPO_DIR = os.environ.get("REPO_DIR", "/opt/carousel/repo")
 PORT = int(os.environ.get("PORT", "8000"))
 RAW_BASE = os.environ.get("RAW_BASE", "https://raw.githubusercontent.com/777vipmax-design/carousels/main")
 KIE_API = "https://api.kie.ai/api/v1/jobs"
+PIXABAY_KEY = os.environ.get("PIXABAY_KEY", "")
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-VERSION = "2.2"
+VERSION = "2.3"
 TTS_TIMESTAMPS = os.environ.get("TTS_TIMESTAMPS", "0") == "1"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 EL_UA = "elevenlabs-python/2.16.0 carousel-server"
@@ -494,6 +496,37 @@ def eleven_models():
         return f"error: {e}"
 
 
+def pixabay_videos(q, n=10):
+    """Search Pixabay videos. Returns [{id, url, w, h, dur, tags, thumb}]."""
+    url = ("https://pixabay.com/api/videos/?" + urllib.parse.urlencode(
+        {"key": PIXABAY_KEY, "q": q, "per_page": max(3, min(int(n), 50)), "safesearch": "true"}))
+    data = json.loads(http_get(url, timeout=30).decode())
+    out = []
+    for h in data.get("hits", []):
+        v = h.get("videos", {})
+        best = v.get("large") if (v.get("large") or {}).get("url") else v.get("medium") or {}
+        out.append({"id": h.get("id"), "url": best.get("url"), "w": best.get("width"), "h": best.get("height"),
+                    "dur": h.get("duration"), "tags": h.get("tags"), "thumb": best.get("thumbnail")})
+    return out
+
+
+def pixabay_check():
+    if not PIXABAY_KEY:
+        return None
+    try:
+        return f"ok, {len(pixabay_videos('money', 3))} hits"
+    except Exception as e:  # noqa: BLE001
+        return f"error: {e}"
+
+
+def tool_stock(a):
+    try:
+        res = pixabay_videos(a["q"], a.get("n", 10))
+    except Exception as e:  # noqa: BLE001
+        return text_result(f"pixabay error: {e}", True)
+    return text_result(json.dumps(res, ensure_ascii=False, indent=1))
+
+
 def tool_status(_):
     du = shutil.disk_usage(FILES_DIR)
     mem = open("/proc/meminfo").read().split("\n")[:3]
@@ -502,7 +535,7 @@ def tool_status(_):
     with JOBS_LOCK:
         running = [j["id"] + ":" + j["kind"] for j in JOBS.values() if j["state"] == "running"]
     return text_result(json.dumps({
-        "version": VERSION, "repo": rev, "tts": "elevenlabs-direct" if ELEVEN_KEY else "kie", "eleven_models": eleven_models(), "domain": DOMAIN, "kie_key": bool(KIE_KEY),
+        "version": VERSION, "repo": rev, "tts": "elevenlabs-direct" if ELEVEN_KEY else "kie", "eleven_models": eleven_models(), "pixabay": pixabay_check(), "domain": DOMAIN, "kie_key": bool(KIE_KEY),
         "disk_free_gb": round(du.free / 1e9, 1), "mem": mem, "running_jobs": running},
         ensure_ascii=False, indent=1))
 
@@ -613,6 +646,8 @@ TOOLS = {
                 S(model={"type": "string", "_req": True}, input={"type": "object", "_req": True})),
     "job": (tool_job, "Статус фоновой задачи и результат (с превью картинок).", S(job_id={"type": "string", "_req": True})),
     "files": (tool_files, "Публичные ссылки на файлы поста.", S(post={"type": "string", "_req": True})),
+    "stock": (tool_stock, "Поиск стоковых видео Pixabay (q на английском). Возвращает ссылки, размеры, длительность, теги.",
+              S(q={"type": "string", "_req": True}, n={"type": "integer"})),
     "put_file": (tool_put_file, "Скачать файл по URL в папку поста (чтобы отдать его по ссылке сервера).",
                  S(post={"type": "string", "_req": True}, url={"type": "string", "_req": True},
                    name={"type": "string", "_req": True})),
