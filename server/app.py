@@ -515,6 +515,8 @@ def pixabay_check():
         return None
     try:
         return f"ok, {len(pixabay_videos('money', 3))} hits"
+    except urllib.error.HTTPError as e:
+        return f"error {e.code}: {e.read()[:200]!r}; key length {len(PIXABAY_KEY)}"
     except Exception as e:  # noqa: BLE001
         return f"error: {e}"
 
