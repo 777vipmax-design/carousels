@@ -547,7 +547,8 @@ def do_story(post, scenes, voice, speed):
             urls = list(sc.get("clips") or [])
             if not urls and sc.get("q"):
                 for h in pixabay_videos(sc["q"], 15):
-                    if h["url"] and h["id"] not in used and (h.get("dur") or 0) >= 3:
+                    bad = any(b in (h.get("tags") or "") for b in ("cartoon", "3d", "animation", "cgi", "green screen"))
+                    if h["url"] and not bad and h["id"] not in used and (h.get("dur") or 0) >= 3:
                         urls.append(h["url"])
                         used.add(h["id"])
                         picked.append({"scene": i, "id": h["id"], "tags": h["tags"]})
