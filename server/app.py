@@ -505,6 +505,8 @@ def pixabay_videos(q, n=10):
     for h in data.get("hits", []):
         v = h.get("videos", {})
         best = v.get("large") if (v.get("large") or {}).get("url") else v.get("medium") or {}
+        if (best.get("width") or 0) > 2000 and (v.get("medium") or {}).get("url"):
+            best = v["medium"]  # 4K is too heavy for the 1-CPU server
         out.append({"id": h.get("id"), "url": best.get("url"), "w": best.get("width"), "h": best.get("height"),
                     "dur": h.get("duration"), "tags": h.get("tags"), "thumb": best.get("thumbnail")})
     return out
