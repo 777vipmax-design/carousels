@@ -112,9 +112,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # karaoke-style subtitles in the lower third
         sub = sc.get("sub") or sc["say"]
         if not sc.get("nosub"):
-            for ch in chunks_of(words_with_times(sub, s0, voice_dur)):
+            chs = chunks_of(words_with_times(sub, s0, voice_dur))
+            for ci, ch in enumerate(chs):
+                nxt = chs[ci + 1][0][1] if ci + 1 < len(chs) else s1
                 for i, (w, a, b) in enumerate(ch):
-                    end = ch[i + 1][1] if i + 1 < len(ch) else min(b + 0.25, s1)
+                    # never overlap the next chunk: each event ends exactly where the next one starts
+                    end = ch[i + 1][1] if i + 1 < len(ch) else min(max(b, nxt), s1)
                     parts = []
                     for j, (w2, _, _) in enumerate(ch):
                         t = esc(w2.upper())
