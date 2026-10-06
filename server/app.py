@@ -618,6 +618,8 @@ def tool_voice_samples(a):
 
 
 def tool_reel(a):
+    if a.get("scenes"):  # story mode (new tools may be hidden by the client's tool cache)
+        return tool_story(a)
     base = a.get("slides_base") or f"{RAW_BASE}/posts/{a['post']}"
     jid = start_job("reel", do_reel, a["post"], a["lines"], a.get("voice", "g31:Gacrux:Promo/Hype"),
                     float(a.get("speed", 1.25)), float(a.get("gap", 0.2)), base, a.get("layout", "fit"))
