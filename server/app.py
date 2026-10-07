@@ -534,6 +534,8 @@ def tool_stock(a):
 def do_story(post, scenes, voice, speed):
     import story
     post, d = post_dir(post)
+    with open(os.path.join(d, "scenes.json"), "w") as f:
+        json.dump({"voice": voice, "speed": speed, "scenes": scenes}, f, ensure_ascii=False, indent=1)
     work = tempfile.mkdtemp(prefix="story-")
     try:
         futs = []
@@ -549,7 +551,8 @@ def do_story(post, scenes, voice, speed):
                 for h in pixabay_videos(sc["q"], 15):
                     tags = (h.get("tags") or "").lower()
                     bad = any(b in tags for b in ("cartoon", "3d", "animation", "cgi", "green screen", "chroma",
-                                                  "anime", "illustration", "space station"))
+                                                  "anime", "illustration", "space station", "ai generated",
+                                                  "anthropomorphic", "temple", "pagoda", "christmas", "xmas"))
                     keys = [k for k in re.split(r"\W+", sc["q"].lower()) if len(k) > 3]
                     if keys and not any(k[:5] in tags for k in keys):
                         bad = True  # tags must mention at least one word of the query
