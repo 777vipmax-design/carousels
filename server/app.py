@@ -667,6 +667,13 @@ def tool_job(a):
 
 
 def tool_files(a):
+    if "/" in a["post"]:  # "post/file.png" -> show the image (client schemas may be cached, so no extra param)
+        pst, name = a["post"].split("/", 1)
+        _, d = post_dir(pst)
+        fp = os.path.join(d, os.path.basename(name))
+        if not os.path.isfile(fp):
+            return text_result("нет файла", True)
+        return {"content": [{"type": "image", "mimeType": "image/jpeg", "data": preview_jpeg(fp, 700)}]}
     post, d = post_dir(a["post"])
     names = sorted(n for n in os.listdir(d) if not n.startswith("_"))
     return text_result("\n".join(public_url(post, n) for n in names) or "пусто")
