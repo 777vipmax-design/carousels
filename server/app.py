@@ -547,7 +547,12 @@ def do_story(post, scenes, voice, speed):
             urls = list(sc.get("clips") or [])
             if not urls and sc.get("q"):
                 for h in pixabay_videos(sc["q"], 15):
-                    bad = any(b in (h.get("tags") or "") for b in ("cartoon", "3d", "animation", "cgi", "green screen"))
+                    tags = (h.get("tags") or "").lower()
+                    bad = any(b in tags for b in ("cartoon", "3d", "animation", "cgi", "green screen", "chroma",
+                                                  "anime", "illustration", "space station"))
+                    keys = [k for k in re.split(r"\W+", sc["q"].lower()) if len(k) > 3]
+                    if keys and not any(k[:5] in tags for k in keys):
+                        bad = True  # tags must mention at least one word of the query
                     if h["url"] and not bad and h["id"] not in used and (h.get("dur") or 0) >= 3:
                         urls.append(h["url"])
                         used.add(h["id"])
