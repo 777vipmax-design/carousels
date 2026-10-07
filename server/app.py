@@ -551,7 +551,7 @@ def do_story(post, scenes, voice, speed):
                 for h in pixabay_videos(sc["q"], 15):
                     tags = (h.get("tags") or "").lower()
                     bad = any(b in tags for b in ("cartoon", "3d", "animation", "cgi", "green screen", "chroma",
-                                                  "anime", "illustration", "space station", "ai generated",
+                                                  "anime", "illustration", "space station",
                                                   "anthropomorphic", "temple", "pagoda", "christmas", "xmas"))
                     keys = [k for k in re.split(r"\W+", sc["q"].lower()) if len(k) > 3]
                     if keys and not any(k[:5] in tags for k in keys):
