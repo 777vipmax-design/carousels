@@ -52,6 +52,7 @@ JOBS = {}
 JOBS_LOCK = threading.Lock()
 POOL = ThreadPoolExecutor(max_workers=2)
 TTS_POOL = ThreadPoolExecutor(max_workers=4)
+RENDER_LOCK = threading.Lock()  # 2 GB RAM: render one video at a time (parallel builds were OOM-killed)
 
 
 def log(*a):
@@ -532,6 +533,11 @@ def tool_stock(a):
 
 
 def do_story(post, scenes, voice, speed):
+    with RENDER_LOCK:
+        return _do_story(post, scenes, voice, speed)
+
+
+def _do_story(post, scenes, voice, speed):
     import story
     post, d = post_dir(post)
     with open(os.path.join(d, "scenes.json"), "w") as f:
