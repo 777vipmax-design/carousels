@@ -128,7 +128,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                                      if j == i else t)
                     intro = pop if i == 0 else ""
                     n = len(" ".join(w2 for w2, _, _ in ch))
-                    fs = min(92, int(900 / (max(1, n) * 0.7)))  # long words (ВЫСОКООПЛАЧИВАЕМЫЙ) must fit the frame
+                    fs = min(92, int(900 / (max(1, n) * 0.62)))  # long words (ВЫСОКООПЛАЧИВАЕМЫЙ) must fit the frame
                     ev.append(f"Dialogue: 1,{ts(a)},{ts(end)},Sub,,0,0,0,,{{\\pos({W // 2},1330)\\fs{fs}}}{intro}{' '.join(parts)}")
         if sc.get("src"):
             ev.append(f"Dialogue: 2,{ts(s0 + 0.2)},{ts(s1)},Src,,0,0,0,,{{\\pos({W // 2},960)}}{esc(sc['src'])}")
