@@ -143,7 +143,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 b = a + 0.045 if k < steps - 1 else s1
                 ev.append(f"Dialogue: 3,{ts(a)},{ts(b)},Big,,0,0,0,,{{\\pos({W // 2},820)}}{fmt_num(v)}{esc(suf)}")
         elif sc.get("big"):
-            ev.append(f"Dialogue: 3,{ts(s0 + 0.1)},{ts(s1)},Big,,0,0,0,,{{\\pos({W // 2},820)}}{pop}{esc(sc['big'])}")
+            bt = sc['big']
+            fs = min(170, int(980 / (max(1, len(bt)) * 0.6)))  # keep on one line so it never covers the source
+            ev.append(f"Dialogue: 3,{ts(s0 + 0.1)},{ts(s1)},Big,,0,0,0,,{{\\pos({W // 2},820)\\q2\\fs{fs}}}{pop}{esc(bt)}")
     return head + "\n".join(ev) + "\n"
 
 
