@@ -246,6 +246,31 @@ def render(scenes, voice_files, clip_files, out_path, work, title_frames=None):
     return {"seconds": round(total, 1), "shots": len(shots), "previews": previews}
 
 
+def detect_beat(song, lo=80, hi=170):
+    """Rough tempo + first-beat phase from an onset envelope (pure python, no numpy)."""
+    import array
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", song, "-t", "40", "-ac", "1", "-ar", "8000",
+                          "-f", "s16le", "-"], capture_output=True, check=True).stdout
+    a = array.array("h"); a.frombytes(raw[: len(raw) // 2 * 2])
+    hop = 80  # 10 ms
+    env = []
+    for i in range(0, len(a) - hop, hop):
+        seg = a[i:i + hop]
+        env.append(sum(x * x for x in seg[::4]) ** 0.5)
+    on = [max(0.0, env[i] - env[i - 1]) for i in range(1, len(env))]
+    m = sum(on) / max(1, len(on))
+    on = [x - m for x in on]
+    best, best_lag = -1e18, 50
+    for lag in range(int(6000 / hi), int(6000 / lo) + 1):
+        c = sum(on[i] * on[i + lag] for i in range(0, len(on) - lag, 2))
+        c += 0.5 * sum(on[i] * on[i + 2 * lag] for i in range(0, len(on) - 2 * lag, 4))
+        if c > best:
+            best, best_lag = c, lag
+    bpm = 6000.0 / best_lag
+    phase = max(range(best_lag), key=lambda ph: sum(on[j] for j in range(ph, len(on), best_lag)))
+    return round(bpm, 2), round((phase + 1) / 100.0, 3)
+
+
 # ------------------------------------------------------------------ music video (song + lifestyle stock)
 
 def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_len=60.0, texts=None):

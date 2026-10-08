@@ -636,8 +636,16 @@ def do_mv(post, spec):
                     f.write(http_get(u, timeout=180))
                 clips.append((fp, probe_duration(fp)))
             out = os.path.join(d, "reel.mp4")
-            res = story.render_mv(song, clips, out, work, float(spec.get("bpm", 120)), int(spec.get("beats", 4)),
-                                  float(spec.get("offset", 0)), float(spec.get("max_len", 60)),
+            bpm, offset = spec.get("bpm", "auto"), spec.get("offset")
+            if bpm == "auto":
+                bpm, ph = story.detect_beat(song)
+                offset = ph if offset is None else offset
+            step = 60.0 / float(bpm) * int(spec.get("beats", 4))
+            offset = float(offset or 0)
+            while offset > step:
+                offset -= step
+            res = story.render_mv(song, clips, out, work, float(bpm), int(spec.get("beats", 4)),
+                                  offset, float(spec.get("max_len", 60)),
                                   [tuple(x) for x in spec.get("texts", [])])
             prev_dir = os.path.join(d, "_preview")
             os.makedirs(prev_dir, exist_ok=True)
@@ -647,7 +655,7 @@ def do_mv(post, spec):
                 shutil.copy(pth, dst)
                 previews.append(dst)
             return {"url": public_url(post, "reel.mp4"), "seconds": res["seconds"], "shots": res["shots"],
-                    "previews": previews}
+                    "bpm": bpm, "offset": round(offset, 3), "previews": previews}
         finally:
             shutil.rmtree(work, ignore_errors=True)
 
