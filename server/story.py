@@ -280,7 +280,9 @@ def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_l
                           "-of", "default=nw=1:nk=1", song], capture_output=True, text=True, check=True)
     total = min(float(out.stdout.strip()), max_len)
     step = 60.0 / bpm * beats
-    bounds, t = [0.0], (offset if offset > 0.3 else step)
+    bounds, t = [0.0], offset
+    while t < 1.0:  # the opener shot must last at least ~1 s
+        t += step
     while t < total - 0.5:
         bounds.append(t)
         t += step
