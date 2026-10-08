@@ -591,9 +591,41 @@ def _do_story(post, scenes, voice, speed):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_remix(post, music_url, vol, src_name, out_name):
+    """Lay a music track (e.g. Suno via kie) under an already built reel, ducking it under the voice."""
+    post, d = post_dir(post)
+    src = os.path.join(d, src_name)
+    if not os.path.isfile(src):
+        raise RuntimeError(f"нет {src_name} в {post}")
+    work = tempfile.mkdtemp(prefix="remix-")
+    try:
+        mp = os.path.join(work, "music.mp3")
+        with open(mp, "wb") as f:
+            f.write(http_get(music_url, timeout=180))
+        dur = probe_duration(src)
+        fc = (f"[0:a]asplit=2[v][sc];"
+              f"[1:a]aresample=44100,aformat=channel_layouts=stereo,volume={vol},"
+              f"afade=t=in:d=0.8,afade=t=out:st={max(0, dur - 2):.2f}:d=2[m];"
+              f"[m][sc]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=350[md];"
+              f"[v][md]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[aout]")
+        out = os.path.join(d, out_name)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-stream_loop", "-1", "-i", mp,
+                        "-filter_complex", fc, "-map", "0:v", "-map", "[aout]", "-c:v", "copy",
+                        "-c:a", "aac", "-b:a", "192k", "-t", f"{dur:.3f}", "-movflags", "+faststart", out],
+                       check=True, capture_output=True)
+        return {"url": public_url(post, out_name), "seconds": round(dur, 1)}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def tool_story(a):
     if isinstance(a.get("scenes"), str):
         a["scenes"] = json.loads(a["scenes"])
+    first = (a.get("scenes") or [{}])[0]
+    if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
+        jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
+                        first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"))
+        return text_result(f"job_id: {jid} — наложение музыки ~30 с")
     jid = start_job("reel", do_story, a["post"], a["scenes"], a.get("voice", "g31:Gacrux:Promo/Hype:loud"),
                     float(a.get("speed", 1.15)))
     return text_result(f"job_id: {jid} — сборка 3–8 минут")
