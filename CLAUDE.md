@@ -113,4 +113,7 @@
 ## Клип-формат (08.10, пилот)
 - Песня Suno через `kie_raw`: model `ai-music-api/generate`, input {custom_mode:true, instrumental:false, model:"V6", title, style (жанр, bpm), prompt (текст песни с [Verse]/[Chorus]), duration 60} → 12 кредитов, 2 варианта, ~20 с. Ссылки tempfile живут 14 дней.
 - Монтаж: `story` с scenes=[{"mv":true,"music":url,"bpm":"auto","beats":4,"max_len":60,"clips":[...],"texts":[[t0,t1,"ТЕКСТ|2 строка","Title"]]}] → /f/<post>/reel.mp4, смена кадра в такт (автоопределение темпа), ~6 мин.
-- Пилот «Высоко»: https://72-56-19-35.sslip.io/f/mv-vysoko/reel.mp4 (ждём оценку пользователя). Порядок клипов пока случайный — первый кадр лучше задать самым ярким.
+- Первый клип в списке = первый кадр (остальные перемешиваются, `shuffle:false` — строго по порядку). Первый кадр ≥1 с.
+- Голосовой рилс + музыка Suno: сначала `story` (scenes), затем `story` с [{"remix":true,"music":url,"vol":0.28–0.35}] → reel_music.mp4.
+- Пилоты 08.10 (ждут оценки пользователя, в Postiz НЕ ставить): mv-vysoko (песня+лайфстайл), mv-avans (песня «От аванса до аванса»), story-motiv/reel_music.mp4 (мотивация), story-shownews/reel_music.mp4 (новости звёзд), story-rocket/reel_music.mp4 (аналогия «Сатурн-5»).
+- Тёмные стоки (будильник 19044, гроза 283428) на первом кадре дают чёрный экран — для хука брать яркие клипы.
