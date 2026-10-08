@@ -273,7 +273,8 @@ def detect_beat(song, lo=80, hi=170):
 
 # ------------------------------------------------------------------ music video (song + lifestyle stock)
 
-def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_len=60.0, texts=None):
+def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_len=60.0, texts=None,
+              shuffle=True):
     """Beat-cut stock montage under a song. clips: [(path, duration)]; texts: [(t0, t1, text, style)]."""
     out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                           "-of", "default=nw=1:nk=1", song], capture_output=True, text=True, check=True)
@@ -286,7 +287,10 @@ def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_l
     bounds.append(total)
     rnd = random.Random(11)
     order = list(range(len(clips)))
-    rnd.shuffle(order)
+    if shuffle:  # keep the first clip as the opener, shuffle the rest
+        rest = order[1:]
+        rnd.shuffle(rest)
+        order = order[:1] + rest
     # encode each shot separately (2 GB RAM: dozens of HD inputs in one graph would OOM)
     seg_list = os.path.join(work, "mv_segs.txt")
     with open(seg_list, "w") as lf:

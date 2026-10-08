@@ -646,7 +646,7 @@ def do_mv(post, spec):
                 offset -= step
             res = story.render_mv(song, clips, out, work, float(bpm), int(spec.get("beats", 4)),
                                   offset, float(spec.get("max_len", 60)),
-                                  [tuple(x) for x in spec.get("texts", [])])
+                                  [tuple(x) for x in spec.get("texts", [])], bool(spec.get("shuffle", True)))
             prev_dir = os.path.join(d, "_preview")
             os.makedirs(prev_dir, exist_ok=True)
             previews = []
