@@ -618,10 +618,47 @@ def do_remix(post, music_url, vol, src_name, out_name):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_mv(post, spec):
+    with RENDER_LOCK:
+        import story
+        post, d = post_dir(post)
+        with open(os.path.join(d, "mv.json"), "w") as f:
+            json.dump(spec, f, ensure_ascii=False, indent=1)
+        work = tempfile.mkdtemp(prefix="mv-")
+        try:
+            song = os.path.join(work, "song.mp3")
+            with open(song, "wb") as f:
+                f.write(http_get(spec["music"], timeout=180))
+            clips = []
+            for j, u in enumerate(spec["clips"]):
+                fp = os.path.join(work, f"c{j:02d}.mp4")
+                with open(fp, "wb") as f:
+                    f.write(http_get(u, timeout=180))
+                clips.append((fp, probe_duration(fp)))
+            out = os.path.join(d, "reel.mp4")
+            res = story.render_mv(song, clips, out, work, float(spec.get("bpm", 120)), int(spec.get("beats", 4)),
+                                  float(spec.get("offset", 0)), float(spec.get("max_len", 60)),
+                                  [tuple(x) for x in spec.get("texts", [])])
+            prev_dir = os.path.join(d, "_preview")
+            os.makedirs(prev_dir, exist_ok=True)
+            previews = []
+            for k, pth in enumerate(res["previews"]):
+                dst = os.path.join(prev_dir, f"frame{k}.jpg")
+                shutil.copy(pth, dst)
+                previews.append(dst)
+            return {"url": public_url(post, "reel.mp4"), "seconds": res["seconds"], "shots": res["shots"],
+                    "previews": previews}
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+
+
 def tool_story(a):
     if isinstance(a.get("scenes"), str):
         a["scenes"] = json.loads(a["scenes"])
     first = (a.get("scenes") or [{}])[0]
+    if first.get("mv"):  # music video: [{"mv":true,"music":url,"clips":[...],"bpm":128,"beats":4,"texts":[[t0,t1,text,style]]}]
+        jid = start_job("reel", do_mv, a["post"], first)
+        return text_result(f"job_id: {jid} — клип ~3–5 мин")
     if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
         jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
                         first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"))

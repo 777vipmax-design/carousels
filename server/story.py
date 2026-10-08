@@ -244,3 +244,56 @@ def render(scenes, voice_files, clip_files, out_path, work, title_frames=None):
         run(["ffmpeg", "-y", "-v", "error", "-ss", f"{total * frac:.2f}", "-i", out_path, "-frames:v", "1", p])
         previews.append(p)
     return {"seconds": round(total, 1), "shots": len(shots), "previews": previews}
+
+
+# ------------------------------------------------------------------ music video (song + lifestyle stock)
+
+def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_len=60.0, texts=None):
+    """Beat-cut stock montage under a song. clips: [(path, duration)]; texts: [(t0, t1, text, style)]."""
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                          "-of", "default=nw=1:nk=1", song], capture_output=True, text=True, check=True)
+    total = min(float(out.stdout.strip()), max_len)
+    step = 60.0 / bpm * beats
+    bounds, t = [0.0], (offset if offset > 0.3 else step)
+    while t < total - 0.5:
+        bounds.append(t)
+        t += step
+    bounds.append(total)
+    rnd = random.Random(11)
+    order = list(range(len(clips)))
+    rnd.shuffle(order)
+    # encode each shot separately (2 GB RAM: dozens of HD inputs in one graph would OOM)
+    seg_list = os.path.join(work, "mv_segs.txt")
+    with open(seg_list, "w") as lf:
+        for k in range(len(bounds) - 1):
+            dur = bounds[k + 1] - bounds[k]
+            path, clip_len = clips[order[k % len(order)]]
+            off = 0.0 if clip_len <= dur + 0.5 else rnd.uniform(0, max(0.0, clip_len - dur - 0.3))
+            seg = os.path.join(work, f"mvseg{k:03d}.mp4")
+            run(["ffmpeg", "-y", "-v", "error", "-ss", f"{off:.2f}", "-stream_loop", "-1", "-i", path,
+                 "-filter_complex", shot_filter(0, dur, k % 2 == 0), "-map", "[v0]", "-an",
+                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-r", str(FPS), seg])
+            lf.write(f"file '{seg}'\n")
+    pop = r"{\fscx70\fscy70\t(0,120,\fscx112\fscy112)\t(120,220,\fscx100\fscy100)}"
+    lines = []
+    for t0, t1, text, style in (texts or []):
+        y = {"Title": 300, "Big": 820, "Sub": 1330}.get(style, 820)
+        lines.append(f"Dialogue: 2,{ts(t0)},{ts(min(t1, total))},{style},,0,0,0,,"
+                     f"{{\\pos({W // 2},{y})}}{pop}{esc(text).replace('|', chr(92) + 'N')}")
+    ass_path = os.path.join(work, "mv.ass")
+    with open(ass_path, "w", encoding="utf-8") as f:
+        f.write(build_ass([], [], total) + "\n".join(lines) + "\n")
+    fontsdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+    silent = os.path.join(work, "mv_video.mp4")
+    run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", seg_list, "-vf",
+         f"eq=saturation=1.18:contrast=1.06,vignette=PI/5,ass={ass_path}:fontsdir={fontsdir},format=yuv420p",
+         "-t", f"{total:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-r", str(FPS), silent])
+    run(["ffmpeg", "-y", "-v", "error", "-i", silent, "-i", song, "-filter_complex",
+         f"[1:a]afade=t=out:st={max(0, total - 1.5):.2f}:d=1.5[a]", "-map", "0:v", "-map", "[a]",
+         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-t", f"{total:.3f}", "-movflags", "+faststart", out_path])
+    previews = []
+    for j, frac in enumerate((0.05, 0.4, 0.8)):
+        p = os.path.join(work, f"mvprev{j}.jpg")
+        run(["ffmpeg", "-y", "-v", "error", "-ss", f"{total * frac:.2f}", "-i", out_path, "-frames:v", "1", p])
+        previews.append(p)
+    return {"seconds": round(total, 1), "shots": len(bounds) - 1, "previews": previews}
