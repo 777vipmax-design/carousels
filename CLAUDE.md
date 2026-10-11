@@ -126,3 +126,8 @@
 - План: одна певица = Suno persona (ai-music-api/generate-persona: task_id, audio_id, name, description); одно лицо = вымышленная девушка (pesni-pilot/girl_a|b|c.png); хук голосом певицы через [Spoken] в начале текста; поющая голова — InfiniteTalk (infinitalk/from-audio, 480p 3 кр/с, ≤15 с) на хук+припев, рилс 20–30 с.
 - Тест 11.10: песня «Мама, ты моё тепло» task aa21728be454aaa0953ae0bad0a5a419, треки 66822764-b8d3-4a35-adab-2e3f4115f1be и 1781748c-5cae-41e1-8c33-e1b4045a9903 (ждём, какой голос и сработал ли [Spoken]).
 - Публикацию клиентских песен — только с согласия клиента.
+- 11.10 пилот-клип собран: https://72-56-19-35.sslip.io/f/pesni-clip/reel.mp4 (story compose: Kling хук 0–12.8 + b-roll в такт 12.8–41.65 + Kling припев 41.65–64, субтитры по таймингам слов). Пользователю Kling «очень понравился». InfiniteTalk 11.10 отвечал internal error (сбой kie).
+- Тайминги слов: kie_raw model `ai-music-api/timeStamped-lyrics` {task_id, audio_id} — ответ приходит сразу (наш kie_raw падает с «createTask failed», но данные alignedWords в тексте ошибки — startS/endS).
+- Kling Avatar standard ≈7.5 кр/с (96 за 12.8 с, ~10 мин на кусок). Seedance-2 петля 6 с 720p = 246 кр (дорого). Grok Imagine i2v 6 с 720p = 27 кр — её «студийные» кадры: /f/pesni-clip (ссылки в compose.json).
+- В b-roll стоки только БЕЗ лиц (121113 и 122737 — с людьми, не брать). Готовые куски Kling лежат на сервере (/f/<post>/comp_vNN.mp4) — при пересборке передавать их как video, чтобы не платить снова.
+- Расход пилота: песня 12, портреты 54, петля 246, Kling 96+176, Grok 3×27 (+1 потерянный при update) ≈ 690 кр.
