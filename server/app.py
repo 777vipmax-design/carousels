@@ -740,6 +740,92 @@ def do_talk(post, spec):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_compose(post, spec):
+    """parts: [{t0,t1,video}|{t0,t1,clips,beats}|{t0,t1,lipsync:model,image,prompt}] over song [start,end]."""
+    import story
+    from concurrent.futures import ThreadPoolExecutor as TPE
+    post, d = post_dir(post)
+    with open(os.path.join(d, "compose.json"), "w") as f:
+        json.dump(spec, f, ensure_ascii=False, indent=1)
+    work = tempfile.mkdtemp(prefix="comp-")
+    try:
+        song = os.path.join(work, "song.mp3")
+        with open(song, "wb") as f:
+            f.write(http_get(spec["music"], timeout=180))
+        start, end = float(spec.get("start", 0)), float(spec["end"])
+        seg = os.path.join(work, "seg.m4a")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.3f}", "-t", f"{end - start:.3f}", "-i", song,
+                        "-c:a", "aac", "-b:a", "192k", seg], check=True)
+        bpm, phase = story.detect_beat(song)
+        parts = spec["parts"]
+        credits = [0.0]
+
+        def lip(k, p):
+            name = f"comp_a{k:02d}.mp3"
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{p['t0']:.3f}", "-t", f"{p['t1'] - p['t0']:.3f}",
+                            "-i", song, "-c:a", "libmp3lame", "-b:a", "192k", os.path.join(d, name)], check=True)
+            inp = {"image_url": p["image"], "audio_url": public_url(post, name),
+                   "prompt": p.get("prompt") or "A beautiful young woman sings with real emotion, natural lip "
+                                                 "movement, gentle head motion, static camera"}
+            if p["lipsync"].startswith("infinitalk"):
+                inp["resolution"] = p.get("resolution", "480p")
+            urls, info = kie_task(p["lipsync"], inp, max_wait=2400)
+            vp = os.path.join(d, f"comp_v{k:02d}.mp4")
+            with open(vp, "wb") as f:
+                f.write(http_get(urls[0], timeout=300))
+            credits[0] += float(info.get("credits") or 0)
+            return vp
+
+        def fetch(url, name):
+            fp = os.path.join(work, name)
+            with open(fp, "wb") as f:
+                f.write(http_get(url, timeout=300))
+            return fp
+
+        lips = {k: p for k, p in enumerate(parts) if p.get("lipsync")}
+        with TPE(max_workers=3) as ex:
+            futs = {k: ex.submit(lip, k, p) for k, p in lips.items()}
+            lip_files = {k: f.result() for k, f in futs.items()}
+        with RENDER_LOCK:
+            seq = []  # (path, offset, dur, push)
+            for k, p in enumerate(parts):
+                t0, t1 = float(p["t0"]), float(p["t1"])
+                if k in lip_files:
+                    seq.append((lip_files[k], 0.0, t1 - t0, False))
+                elif p.get("video"):
+                    seq.append((fetch(p["video"], f"v{k:02d}.mp4"), float(p.get("offset", 0)), t1 - t0, False))
+                else:
+                    clips = [fetch(u, f"c{k:02d}_{j:02d}.mp4") for j, u in enumerate(p["clips"])]
+                    step = 60.0 / bpm * int(p.get("beats", 4))
+                    b = phase
+                    while b < t0 + 0.6:
+                        b += step
+                    bounds = [t0]
+                    while b < t1 - 0.6:
+                        bounds.append(b)
+                        b += step
+                    bounds.append(t1)
+                    for j in range(len(bounds) - 1):
+                        c = clips[j % len(clips)]
+                        cd = probe_duration(c)
+                        dur = bounds[j + 1] - bounds[j]
+                        off = max(0.0, min(cd - dur - 0.2, (cd - dur) / 2))
+                        seq.append((c, off, dur, j % 2 == 0))
+            res = story.render_compose(seq, seg, os.path.join(d, "reel.mp4"), work,
+                                       [tuple(x) for x in spec.get("texts", [])])
+        prev_dir = os.path.join(d, "_preview")
+        os.makedirs(prev_dir, exist_ok=True)
+        previews = []
+        for k, pth in enumerate(res["previews"]):
+            dst = os.path.join(prev_dir, f"frame{k}.jpg")
+            shutil.copy(pth, dst)
+            previews.append(dst)
+        return {"url": public_url(post, "reel.mp4"), "seconds": res["seconds"], "bpm": bpm,
+                "credits": credits[0], "shots": len(seq), "previews": previews}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def tool_story(a):
     if isinstance(a.get("scenes"), str):
         a["scenes"] = json.loads(a["scenes"])
@@ -747,6 +833,9 @@ def tool_story(a):
     if first.get("mv"):  # music video: [{"mv":true,"music":url,"clips":[...],"bpm":128,"beats":4,"texts":[[t0,t1,text,style]]}]
         jid = start_job("reel", do_mv, a["post"], first)
         return text_result(f"job_id: {jid} — клип ~3–5 мин")
+    if first.get("compose"):  # clip from parts: video / beat-cut b-roll / lip-sync, under one song
+        jid = start_job("reel", do_compose, a["post"], first)
+        return text_result(f"job_id: {jid} — клип из частей ~10–25 мин")
     if first.get("talk"):  # singing head: [{"talk":true,"music":url,"image":url,"start":0,"end":64,"prompt":"...","texts":[...]}]
         jid = start_job("reel", do_talk, a["post"], first)
         return text_result(f"job_id: {jid} — поющая голова ~5–15 мин")
