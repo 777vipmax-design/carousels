@@ -660,6 +660,68 @@ def do_mv(post, spec):
             shutil.rmtree(work, ignore_errors=True)
 
 
+def do_talk(post, spec):
+    """Lip-sync a portrait to a song segment with InfiniteTalk (<=15 s per task), then assemble the reel."""
+    import math
+    import story
+    from concurrent.futures import ThreadPoolExecutor as TPE
+    post, d = post_dir(post)
+    with open(os.path.join(d, "talk.json"), "w") as f:
+        json.dump(spec, f, ensure_ascii=False, indent=1)
+    work = tempfile.mkdtemp(prefix="talk-")
+    try:
+        song = os.path.join(work, "song.mp3")
+        with open(song, "wb") as f:
+            f.write(http_get(spec["music"], timeout=180))
+        start = float(spec.get("start", 0))
+        end = min(float(spec.get("end", 60)), probe_duration(song))
+        total = end - start
+        n = max(1, math.ceil(total / float(spec.get("chunk", 14.5))))
+        step = total / n
+        seg = os.path.join(d, "talk_song.m4a")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.3f}", "-t", f"{total:.3f}", "-i", song,
+                        "-c:a", "aac", "-b:a", "192k", seg], check=True)
+        urls, durs = [], []
+        for k in range(n):
+            name = f"talk_a{k:02d}.mp3"
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{start + k * step:.3f}", "-t", f"{step:.3f}",
+                            "-i", song, "-c:a", "libmp3lame", "-b:a", "192k", os.path.join(d, name)], check=True)
+            urls.append(public_url(post, name))
+            durs.append(step)
+        prompt = spec.get("prompt") or ("A beautiful young woman sings a tender song with real emotion, natural "
+                                        "lip movement, gentle head motion and blinking, warm cozy room, static camera")
+
+        def one(k):
+            res_urls, info = kie_task("infinitalk/from-audio", {"image_url": spec["image"], "audio_url": urls[k],
+                                                                "prompt": prompt,
+                                                                "resolution": spec.get("resolution", "480p")},
+                                      max_wait=1500)
+            vp = os.path.join(work, f"lip{k:02d}.mp4")
+            with open(vp, "wb") as f:
+                f.write(http_get(res_urls[0], timeout=300))
+            shutil.copy(vp, os.path.join(d, f"talk_v{k:02d}.mp4"))
+            return vp, info.get("credits")
+
+        with TPE(max_workers=3) as ex:
+            results = list(ex.map(one, range(n)))
+        vids = [r[0] for r in results]
+        credits = sum(float(r[1] or 0) for r in results)
+        with RENDER_LOCK:
+            out = os.path.join(d, "reel.mp4")
+            res = story.render_talk(vids, durs, seg, out, work, [tuple(x) for x in spec.get("texts", [])])
+        prev_dir = os.path.join(d, "_preview")
+        os.makedirs(prev_dir, exist_ok=True)
+        previews = []
+        for k, pth in enumerate(res["previews"]):
+            dst = os.path.join(prev_dir, f"frame{k}.jpg")
+            shutil.copy(pth, dst)
+            previews.append(dst)
+        return {"url": public_url(post, "reel.mp4"), "seconds": res["seconds"], "chunks": n,
+                "credits": credits, "previews": previews}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def tool_story(a):
     if isinstance(a.get("scenes"), str):
         a["scenes"] = json.loads(a["scenes"])
@@ -667,6 +729,9 @@ def tool_story(a):
     if first.get("mv"):  # music video: [{"mv":true,"music":url,"clips":[...],"bpm":128,"beats":4,"texts":[[t0,t1,text,style]]}]
         jid = start_job("reel", do_mv, a["post"], first)
         return text_result(f"job_id: {jid} — клип ~3–5 мин")
+    if first.get("talk"):  # singing head: [{"talk":true,"music":url,"image":url,"start":0,"end":64,"prompt":"...","texts":[...]}]
+        jid = start_job("reel", do_talk, a["post"], first)
+        return text_result(f"job_id: {jid} — поющая голова ~5–15 мин")
     if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
         jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
                         first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"))

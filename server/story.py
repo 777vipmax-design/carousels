@@ -328,3 +328,41 @@ def render_mv(song, clips, out_path, work, bpm=120.0, beats=4, offset=0.0, max_l
         run(["ffmpeg", "-y", "-v", "error", "-ss", f"{total * frac:.2f}", "-i", out_path, "-frames:v", "1", p])
         previews.append(p)
     return {"seconds": round(total, 1), "shots": len(bounds) - 1, "previews": previews}
+
+
+# ------------------------------------------------------------------ singing head (lip-sync chunks + original song)
+
+def render_talk(chunk_videos, chunk_durs, song_seg, out_path, work, texts=None):
+    """Concat lip-sync chunks into a 1080x1920 reel, laying the continuous original song segment as audio."""
+    seg_list = os.path.join(work, "talk_segs.txt")
+    with open(seg_list, "w") as lf:
+        for i, (v, d) in enumerate(zip(chunk_videos, chunk_durs)):
+            seg = os.path.join(work, f"talkseg{i:02d}.mp4")
+            run(["ffmpeg", "-y", "-v", "error", "-i", v, "-an", "-vf",
+                 f"scale=w='if(gt(iw/ih,{W}/{H}),-2,{W})':h='if(gt(iw/ih,{W}/{H}),{H},-2)',crop={W}:{H},"
+                 f"setsar=1,fps={FPS},tpad=stop_mode=clone:stop_duration=1,trim=duration={d:.3f},setpts=PTS-STARTPTS",
+                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", seg])
+            lf.write(f"file '{seg}'\n")
+    total = sum(chunk_durs)
+    pop = r"{\fscx70\fscy70\t(0,120,\fscx112\fscy112)\t(120,220,\fscx100\fscy100)}"
+    lines = []
+    for t0, t1, text, style in (texts or []):
+        y = {"Title": 300, "Big": 820, "Sub": 1330}.get(style, 820)
+        lines.append(f"Dialogue: 2,{ts(t0)},{ts(min(t1, total))},{style},,0,0,0,,"
+                     f"{{\\pos({W // 2},{y})}}{pop}{esc(text).replace('|', chr(92) + 'N')}")
+    ass_path = os.path.join(work, "talk.ass")
+    with open(ass_path, "w", encoding="utf-8") as f:
+        f.write(build_ass([], [], total) + "\n".join(lines) + "\n")
+    fontsdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+    run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", seg_list, "-i", song_seg,
+         "-filter_complex",
+         f"[0:v]ass={ass_path}:fontsdir={fontsdir},format=yuv420p[v];"
+         f"[1:a]afade=t=out:st={max(0, total - 1.2):.2f}:d=1.2[a]",
+         "-map", "[v]", "-map", "[a]", "-t", f"{total:.3f}", "-c:v", "libx264", "-preset", "veryfast",
+         "-crf", "20", "-r", str(FPS), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out_path])
+    previews = []
+    for j, frac in enumerate((0.05, 0.4, 0.8)):
+        p = os.path.join(work, f"talkprev{j}.jpg")
+        run(["ffmpeg", "-y", "-v", "error", "-ss", f"{total * frac:.2f}", "-i", out_path, "-frames:v", "1", p])
+        previews.append(p)
+    return {"seconds": round(total, 1), "previews": previews}
