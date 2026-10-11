@@ -681,6 +681,24 @@ def do_talk(post, spec):
         seg = os.path.join(d, "talk_song.m4a")
         subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.3f}", "-t", f"{total:.3f}", "-i", song,
                         "-c:a", "aac", "-b:a", "192k", seg], check=True)
+        if spec.get("loop"):  # no lip-sync: a seamless idle clip looped under the song
+            lp = os.path.join(work, "loop_src.mp4")
+            with open(lp, "wb") as f:
+                f.write(http_get(spec["loop"], timeout=300))
+            looped = os.path.join(work, "loop_full.mp4")
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-stream_loop", "-1", "-i", lp, "-t", f"{total:.3f}",
+                            "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", looped], check=True)
+            with RENDER_LOCK:
+                out = os.path.join(d, "reel.mp4")
+                res = story.render_talk([looped], [total], seg, out, work, [tuple(x) for x in spec.get("texts", [])])
+            prev_dir = os.path.join(d, "_preview")
+            os.makedirs(prev_dir, exist_ok=True)
+            previews = []
+            for k, pth in enumerate(res["previews"]):
+                dst = os.path.join(prev_dir, f"frame{k}.jpg")
+                shutil.copy(pth, dst)
+                previews.append(dst)
+            return {"url": public_url(post, "reel.mp4"), "seconds": res["seconds"], "credits": 0, "previews": previews}
         urls, durs = [], []
         for k in range(n):
             name = f"talk_a{k:02d}.mp3"
