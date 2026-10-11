@@ -769,7 +769,7 @@ def do_compose(post, spec):
                                                  "movement, gentle head motion, static camera"}
             if p["lipsync"].startswith("infinitalk"):
                 inp["resolution"] = p.get("resolution", "480p")
-            urls, info = kie_task(p["lipsync"], inp, max_wait=2400)
+            urls, info = kie_task(p["lipsync"], inp, max_wait=int(p.get("max_wait", 5400)))
             vp = os.path.join(d, f"comp_v{k:02d}.mp4")
             with open(vp, "wb") as f:
                 f.write(http_get(urls[0], timeout=300))
