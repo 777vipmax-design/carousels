@@ -11,7 +11,7 @@
 3. Слайды: `posts/<YYYY-MM-тема>/slides.json` → `python3 tools/render.py posts/.../slides.json posts/...` (нумерация 02–10). Проверить глазами контактный лист: текст не налезает на лицо (лимит y=740 для B/V/G), нет висячих слов.
 4. Обложка (01.png) — полностью генерируется в kie.ai БЕЗ фото автора (он и так есть на слайдах 2–10). Задача обложки — максимальный клик из ленты: кликбейтный, но в рамках правил Instagram заголовок крупно + яркая сцена/предмет по теме. Создать `posts/.../cover_job.json` с `"refs": []` (см. tools/kie_cover.py). Push → GitHub Actions сам генерирует `01.png` через kie.ai (секрет KIE_API_KEY). Ждать завершения run (api.github.com/repos/777vipmax-design/carousels/actions/runs), `git pull`, посмотреть `cover_status.json` и саму картинку (текст без ошибок, читается с телефона). Плохо → удалить 01.png, поправить промт, push заново (каждая генерация ≈18 кредитов).
 5. Postiz: `uploadFromUrlTool` для каждого файла по `https://raw.githubusercontent.com/777vipmax-design/carousels/main/posts/.../NN.png` (01…10 по порядку), затем `integrationSchedulePostTool`: integrationId `cmuvju7it09fgmo0y5xxggeok` (instagram через Facebook; музыка — triggerTool audioSearch, только для рилсов), settings `post_type=post`, контент — подпись в `<p>`. Время в UTC (Москва = UTC+3).
-6. Пока пользователь не скажет иначе — ставить `type: draft` и присылать previewUrl.
+6. Всё, что пользователь просит поставить в Postiz, — СРАЗУ `type: schedule` (в публикацию), НЕ черновик. Черновик только если он сам попросит (правило 12.10). Присылать previewUrl.
 
 ## Аудитория (статистика 6 июл – 4 окт 2026)
 - 1 024 подписчика; Reels за 90 дней: 501 тыс. просмотров, 284 тыс. зрителей, 19 роликов. Охват в основном не из подписчиков.
