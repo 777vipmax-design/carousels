@@ -368,18 +368,20 @@ def render_talk(chunk_videos, chunk_durs, song_seg, out_path, work, texts=None):
     return {"seconds": round(total, 1), "previews": previews}
 
 
-def render_compose(seq, song_seg, out_path, work, texts=None):
+def render_compose(seq, song_seg, out_path, work, texts=None, pop_anim=True):
     """seq: [(path, offset, dur, push)] -> 1080x1920 reel with the continuous song segment as audio."""
     seg_list = os.path.join(work, "comp_segs.txt")
     with open(seg_list, "w") as lf:
         for i, (path, off, dur, push) in enumerate(seq):
             seg = os.path.join(work, f"compseg{i:03d}.mp4")
-            run(["ffmpeg", "-y", "-v", "error", "-ss", f"{off:.3f}", "-stream_loop", "-1", "-i", path,
+            is_img = path.lower().rsplit(".", 1)[-1] in ("png", "jpg", "jpeg", "webp")
+            src = ["-loop", "1", "-i", path] if is_img else ["-ss", f"{off:.3f}", "-stream_loop", "-1", "-i", path]
+            run(["ffmpeg", "-y", "-v", "error"] + src + [
                  "-filter_complex", shot_filter(0, dur, push), "-map", "[v0]", "-an",
                  "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-r", str(FPS), seg])
             lf.write(f"file '{seg}'\n")
     total = sum(x[2] for x in seq)
-    pop = r"{\fscx70\fscy70\t(0,120,\fscx112\fscy112)\t(120,220,\fscx100\fscy100)}"
+    pop = r"{\fscx70\fscy70\t(0,120,\fscx112\fscy112)\t(120,220,\fscx100\fscy100)}" if pop_anim else ""
     lines = []
     for t0, t1, text, style in (texts or []):
         y = {"Title": 300, "Big": 820, "Sub": 1330}.get(style, 820)

@@ -794,6 +794,10 @@ def do_compose(post, spec):
                     seq.append((lip_files[k], 0.0, t1 - t0, False))
                 elif p.get("video"):
                     seq.append((fetch(p["video"], f"v{k:02d}.mp4"), float(p.get("offset", 0)), t1 - t0, False))
+                elif p.get("still"):  # still image shown for t1-t0 (optional slow push)
+                    ext = p["still"].rsplit(".", 1)[-1].split("?")[0].lower()
+                    ext = ext if ext in ("png", "jpg", "jpeg", "webp") else "png"
+                    seq.append((fetch(p["still"], f"s{k:02d}.{ext}"), 0.0, t1 - t0, bool(p.get("push", True))))
                 else:
                     clips = [fetch(u, f"c{k:02d}_{j:02d}.mp4") for j, u in enumerate(p["clips"])]
                     step = 60.0 / bpm * int(p.get("beats", 4))
@@ -812,7 +816,8 @@ def do_compose(post, spec):
                         off = max(0.0, min(cd - dur - 0.2, (cd - dur) / 2))
                         seq.append((c, off, dur, j % 2 == 0))
             res = story.render_compose(seq, seg, os.path.join(d, "reel.mp4"), work,
-                                       [tuple(x) for x in spec.get("texts", [])])
+                                       [tuple(x) for x in spec.get("texts", [])],
+                                       pop_anim=bool(spec.get("pop", True)))
         prev_dir = os.path.join(d, "_preview")
         os.makedirs(prev_dir, exist_ok=True)
         previews = []
