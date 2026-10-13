@@ -864,7 +864,7 @@ def do_transcribe(post, url, lang="ru", model="small"):
             words.append([round(w.start, 3), round(w.end, 3), w.word.strip()])
     with open(os.path.join(d, "words.json"), "w") as f:
         json.dump(words, f, ensure_ascii=False)
-    return {"url": public_url(post, "words.json"), "n": len(words)}
+    return {"url": public_url(post, "words.json"), "n": len(words), "words": words}
 
 
 def tool_story(a):
