@@ -853,7 +853,11 @@ def do_transcribe(post, url, lang="ru", model="small"):
     with open(src, "wb") as f:
         f.write(http_get(url, timeout=300))
     m = WhisperModel(model, device="cpu", compute_type="int8", cpu_threads=2)
-    segs, info = m.transcribe(src, language=lang, word_timestamps=True, vad_filter=False, beam_size=5)
+    import numpy as _np
+    pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", src, "-f", "s16le", "-ac", "1", "-ar", "16000", "-"],
+                         capture_output=True, check=True).stdout
+    audio = _np.frombuffer(pcm, _np.int16).astype(_np.float32) / 32768.0
+    segs, info = m.transcribe(audio, language=lang, word_timestamps=True, vad_filter=False, beam_size=5)
     words = []
     for sg in segs:
         for w in (sg.words or []):
