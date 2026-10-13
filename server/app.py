@@ -831,6 +831,30 @@ def do_compose(post, spec):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_transcribe(post, url, lang="ru", model="small"):
+    """Word-level speech recognition with faster-whisper (installed on first use)."""
+    import sys as _sys
+    try:
+        import faster_whisper  # noqa
+    except ImportError:
+        subprocess.run([_sys.executable, "-m", "pip", "install", "--break-system-packages", "-q", "faster-whisper"],
+                       check=True, timeout=1800)
+    from faster_whisper import WhisperModel
+    post, d = post_dir(post)
+    src = os.path.join(d, "stt_src" + os.path.splitext(url.split("?")[0])[1][:5])
+    with open(src, "wb") as f:
+        f.write(http_get(url, timeout=300))
+    m = WhisperModel(model, device="cpu", compute_type="int8", cpu_threads=2)
+    segs, info = m.transcribe(src, language=lang, word_timestamps=True, vad_filter=False, beam_size=5)
+    words = []
+    for sg in segs:
+        for w in (sg.words or []):
+            words.append([round(w.start, 3), round(w.end, 3), w.word.strip()])
+    with open(os.path.join(d, "words.json"), "w") as f:
+        json.dump(words, f, ensure_ascii=False)
+    return {"url": public_url(post, "words.json"), "n": len(words)}
+
+
 def tool_story(a):
     if isinstance(a.get("scenes"), str):
         a["scenes"] = json.loads(a["scenes"])
@@ -844,6 +868,10 @@ def tool_story(a):
     if first.get("talk"):  # singing head: [{"talk":true,"music":url,"image":url,"start":0,"end":64,"prompt":"...","texts":[...]}]
         jid = start_job("reel", do_talk, a["post"], first)
         return text_result(f"job_id: {jid} — поющая голова ~5–15 мин")
+    if first.get("transcribe"):  # scenes=[{"transcribe": audio_url, "lang": "ru", "model": "small"}]
+        jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
+                        first.get("model", "small"))
+        return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
     if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
         jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
                         first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"))
