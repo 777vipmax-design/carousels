@@ -837,8 +837,16 @@ def do_transcribe(post, url, lang="ru", model="small"):
     try:
         import faster_whisper  # noqa
     except ImportError:
-        subprocess.run([_sys.executable, "-m", "pip", "install", "--break-system-packages", "-q", "faster-whisper"],
-                       check=True, timeout=1800)
+        pipcmd = [_sys.executable, "-m", "pip", "install", "--break-system-packages", "-q", "faster-whisper"]
+        r = subprocess.run(pipcmd, capture_output=True, text=True, timeout=1800)
+        if r.returncode != 0:
+            gp = "/tmp/get-pip.py"
+            with open(gp, "wb") as f:
+                f.write(http_get("https://bootstrap.pypa.io/get-pip.py", timeout=120))
+            r0 = subprocess.run([_sys.executable, gp, "--break-system-packages"], capture_output=True, text=True, timeout=900)
+            r = subprocess.run(pipcmd, capture_output=True, text=True, timeout=1800)
+            if r.returncode != 0:
+                raise RuntimeError("pip failed: " + (r0.stderr[-600:] + " | " + r.stderr[-800:]))
     from faster_whisper import WhisperModel
     post, d = post_dir(post)
     src = os.path.join(d, "stt_src" + os.path.splitext(url.split("?")[0])[1][:5])
