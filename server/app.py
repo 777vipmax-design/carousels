@@ -618,6 +618,26 @@ def do_remix(post, music_url, vol, src_name, out_name):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_crop(post, src_name, out_name, box, fade):
+    """Re-frame a finished reel: crop box [x,y,w,h] in fractions of the frame, scale back to 1080x1920
+    (used to cut away artefacts such as fake captions a video model drew near the bottom)."""
+    post, d = post_dir(post)
+    src = os.path.join(d, src_name)
+    x, y, w, h = [float(v) for v in box]
+    vf = (f"crop=iw*{w}:ih*{h}:iw*{x}:ih*{y},scale=1080:1920:flags=lanczos,setsar=1")
+    dur = probe_duration(src)
+    if fade:
+        vf += f",fade=t=out:st={max(0, dur - 1.2):.2f}:d=1.2"
+    out = os.path.join(d, out_name)
+    tmp = out + ".tmp.mp4"
+    with RENDER_LOCK:
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", vf, "-c:v", "libx264", "-preset", "medium",
+                        "-crf", "19", "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", tmp],
+                       check=True, capture_output=True)
+    os.replace(tmp, out)
+    return {"url": public_url(post, out_name), "seconds": round(dur, 1)}
+
+
 def do_brand_cover(post, bg_url, ov_url, out_name, reel_src, reel_out):
     """Composite a transparent headline PNG over a background (1080x1920 cover). Optionally burn the
     cover into the FIRST FRAME of a reel (1 frame, no shift of audio) so Instagram uses it as thumbnail."""
@@ -924,6 +944,10 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("crop"):  # [{"crop": [x,y,w,h], "src_file": "reel.mp4", "out": "reel_crop.mp4", "fade": false}]
+        jid = start_job("reel", do_crop, a["post"], first.get("src_file", "reel.mp4"), first.get("out", "reel_crop.mp4"),
+                        first["crop"], bool(first.get("fade", False)))
+        return text_result(f"job_id: {jid} — кадрирование ~1–2 мин")
     if first.get("brand_cover"):  # [{"brand_cover": bg_url, "overlay": png_url, "out": "cover.png", "reel": "reel.mp4"}]
         jid = start_job("cover", do_brand_cover, a["post"], first["brand_cover"], first.get("overlay"),
                         first.get("out", "cover.png"), first.get("reel"), first.get("reel_out", first.get("reel")))
