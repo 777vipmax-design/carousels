@@ -56,7 +56,9 @@ for b in blocks:
     y = FULL_Y if mode_of.get(b["blk"]) == "full" else SPLIT_Y
     for c, L in zip(chunks, lens):
         dt = span * L / tot
+        import re as _re
         txt = " ".join(c).upper()
+        txt = _re.sub(r"[.,;:«»]", "", txt).strip()
         if len(txt) > 17 and " " in txt:
             ws = txt.split(); best = None
             for k in range(1, len(ws)):
