@@ -1,0 +1,79 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:960px;overflow:hidden;background:transparent;font-family:Inter,'Inter Display',sans-serif;color:#fff}
+#root{position:absolute;inset:0}
+.bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 50% 0%,#23263a 0%,#0e0f14 60%,#0b0c10 100%)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:60px 60px}
+.win{position:absolute;left:70px;right:70px;top:150px;bottom:110px;background:#171922;border:2px solid #2a2d3a;border-radius:34px;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
+.bar{height:74px;display:flex;align-items:center;padding:0 30px;gap:14px;border-bottom:2px solid #262935}
+.dot{width:18px;height:18px;border-radius:50%}
+.ttl{font-weight:800;font-size:30px;letter-spacing:.5px;margin-left:12px;color:#c9ccd8}
+.role{position:absolute;left:70px;top:46px;display:flex;align-items:center;gap:18px}
+.num{font-weight:900;font-size:40px;color:#0e0f14;background:#FF7A45;border-radius:14px;padding:4px 16px}
+.rname{font-weight:900;font-size:58px;letter-spacing:1px}
+.pill{position:absolute;right:70px;bottom:40px;font-weight:900;font-size:34px;padding:14px 28px;border-radius:40px;background:#34C759;color:#0b0c10}
+.bub{position:absolute;font-size:34px;line-height:1.3;padding:22px 28px;border-radius:26px;max-width:760px}
+.me{right:30px;background:#FF7A45;color:#111;font-weight:700}
+.ai{left:30px;background:#232634;color:#eef0f6;font-weight:600;white-space:pre-wrap}
+.tile{position:absolute;width:270px;height:340px;border-radius:24px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:900;font-size:46px;line-height:1.05}
+.track{position:absolute;left:40px;right:40px;height:70px;border-radius:14px;background:#1f2230}
+.clip{position:absolute;top:8px;height:54px;border-radius:10px}
+.barc{position:absolute;bottom:90px;width:90px;border-radius:14px 14px 4px 4px;background:#3a7bff}
+.lbl{position:absolute;bottom:40px;width:130px;text-align:center;font-size:24px;color:#9aa0b4;font-weight:600}
+.row{position:absolute;left:30px;right:30px;height:96px;border-radius:20px;background:#202331;display:flex;align-items:center;padding:0 26px;font-size:32px;font-weight:700;gap:20px}
+.chk{margin-left:auto;font-size:28px;font-weight:900;color:#0b0c10;background:#34C759;padding:8px 18px;border-radius:30px}
+.big{position:absolute;left:0;right:0;text-align:center;font-weight:900}
+</style></head><body><div id="root"></div>
+<script>
+const R=document.getElementById('root');
+const P=new URLSearchParams(location.search);const CARD=P.get('card');
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=x=>{x=cl(x);return 1-Math.pow(1-x,3)};
+const prog=(t,s,d)=>ease((t-s)/d);
+function el(tag,cls,css,html){const e=document.createElement(tag);if(cls)e.className=cls;if(css)Object.assign(e.style,css);if(html!==undefined)e.innerHTML=html;return e}
+function frame(num,name,title){
+  R.innerHTML='';R.append(el('div','bg'),el('div','grid'));
+  const role=el('div','role');role.append(el('div','num',null,num),el('div','rname',null,name));R.append(role);
+  const w=el('div','win');const b=el('div','bar');
+  ['#ff5f57','#febc2e','#28c840'].forEach(c=>b.append(el('div','dot',{background:c})));
+  b.append(el('div','ttl',null,title));w.append(b);R.append(w);return {w,role}
+}
+function intro(t,f){const p=prog(t,0,.45);f.role.style.transform=`translateX(${(1-p)*-80}px)`;f.role.style.opacity=p;
+  f.w.style.transform=`translateY(${(1-prog(t,.05,.5))*80}px) scale(${.96+.04*prog(t,.05,.5)})`;f.w.style.opacity=prog(t,.05,.4)}
+function typed(s,t,start,cps){const n=Math.floor(cl((t-start)*cps,0,s.length));return s.slice(0,n)}
+const CARDS={
+ copywriter(t){const f=frame('01','КОПИРАЙТЕР','ИИ · новый чат');intro(t,f);
+  const me=el('div','bub me',{top:'110px'},'Напиши объявление для кофейни');me.style.opacity=prog(t,.4,.3);me.style.transform=`translateY(${(1-prog(t,.4,.3))*30}px)`;f.w.append(me);
+  const txt='Утро начинается здесь.\nСвежая обжарка и круассаны из печи.\nСкидка 20% до 10:00 — заходи!';
+  if(t>1.0){const a=el('div','bub ai',{top:'260px'},typed(txt,t,1.0,38)+(t<3.4?'▌':''));f.w.append(a)}
+  if(t>3.2){const p=el('div','pill',null,'ЗА 1 МИНУТУ');p.style.opacity=prog(t,3.2,.3);p.style.transform=`scale(${.85+.15*prog(t,3.2,.3)})`;R.append(p)}},
+ designer(t){const f=frame('02','ДИЗАЙНЕР','ИИ · генерация');intro(t,f);
+  const pr=el('div','bub me',{top:'100px',fontSize:'30px'},'Баннер: распродажа кроссовок, яркий неон');pr.style.opacity=prog(t,.4,.3);f.w.append(pr);
+  const tiles=[['SALE<br>−40%','linear-gradient(135deg,#ff3cac,#784ba0 60%,#2b86c5)'],['НОВИНКА','linear-gradient(135deg,#f7971e,#ffd200)'],['ХИТ<br>СЕЗОНА','linear-gradient(135deg,#00c9ff,#92fe9d)']];
+  tiles.forEach((d,i)=>{const s=1.1+i*.45;if(t<s)return;const p=prog(t,s,.45);const e=el('div','tile',{left:(55+i*300)+'px',top:'240px',background:d[1],color:i==0?'#fff':'#111'},d[0]);e.style.opacity=p;e.style.transform=`scale(${.6+.4*p}) rotate(${(1-p)*(i-1)*8}deg)`;f.w.append(e)});
+  if(t>2.9){const p=el('div','pill',null,'ПО ОДНОМУ ОПИСАНИЮ');p.style.opacity=prog(t,2.9,.3);R.append(p)}},
+ editor(t){const f=frame('03','МОНТАЖЁР','ИИ · таймлайн');intro(t,f);
+  const cols=['#FF7A45','#3a7bff','#34C759','#b06bff','#ffcc00'];
+  [0,1,2].forEach(r=>{const tr=el('div','track',{top:(130+r*100)+'px'});f.w.append(tr);
+   for(let k=0;k<5;k++){const s=.5+r*.25+k*.18;const p=prog(t,s,.35);const left=20+k*170;const c=el('div','clip',{left:(left+(1-p)*400)+'px',width:(150-r*20)+'px',background:cols[(k+r)%5],opacity:p});tr.append(c)}});
+  const ph=el('div',null,{position:'absolute',top:'110px',height:'320px',width:'6px',background:'#fff',borderRadius:'3px',left:(60+cl((t-1.5)/2.5)*800)+'px',boxShadow:'0 0 20px #fff'});f.w.append(ph);
+  const lab=el('div',null,{position:'absolute',left:'40px',top:'470px',fontSize:'30px',fontWeight:'700',color:'#9aa0b4'},'паузы вырезаны · субтитры · музыка · переходы');lab.style.opacity=prog(t,2,.4);f.w.append(lab);
+  if(t>3.0){const p=el('div','pill',null,'0 ЧАСОВ В МОНТАЖКЕ');p.style.opacity=prog(t,3,.3);R.append(p)}},
+ analyst(t){const f=frame('04','АНАЛИТИК','ИИ · отчёт по рекламе');intro(t,f);
+  const H=[260,190,300,40,230,35],L=['Поиск','РСЯ','Ретаргет','Площадка А','Карты','Площадка Б'];
+  H.forEach((h,i)=>{const p=prog(t,.5+i*.12,.6);const bad=(i==3||i==5)&&t>2.1;const b=el('div','barc',{left:(70+i*150)+'px',height:(30+h*p)+'px',background:bad?'#FF3B30':'#3a7bff'});f.w.append(b);f.w.append(el('div','lbl',{left:(50+i*150)+'px'},L[i]))});
+  if(t>2.1){const n=el('div',null,{position:'absolute',left:'40px',top:'100px',fontSize:'36px',fontWeight:'900',color:'#FF3B30'},'Клики есть — заявок 0');n.style.opacity=prog(t,2.1,.3);f.w.append(n)}
+  if(t>2.9){const p=el('div','pill',{background:'#FF3B30',color:'#fff'},'СЛИВ НАЙДЕН');p.style.opacity=prog(t,2.9,.3);R.append(p)}},
+ assistant(t){const f=frame('05','ПОМОЩНИК','Входящие · 3 новых');intro(t,f);
+  ['Вопрос о цене','Запись на завтра','Счёт на оплату'].forEach((s,i)=>{const st=.5+i*.35;const p=prog(t,st,.4);const r=el('div','row',{top:(110+i*120)+'px'},'<span style="color:#FF7A45">●</span>'+s);r.style.opacity=p;r.style.transform=`translateX(${(1-p)*120}px)`;
+   if(t>1.8+i*.45){const c=el('div','chk',null,'ответ готов');c.style.opacity=prog(t,1.8+i*.45,.25);r.append(c)}f.w.append(r)});
+  if(t>3.4){const p=el('div','pill',null,'ПОКА ТЫ ЗАНЯТ');p.style.opacity=prog(t,3.4,.3);R.append(p)}},
+ head(t){R.innerHTML='';R.append(el('div','bg'),el('div','grid'));
+  const T1=+(P.get('a')||.1),T2=+(P.get('b')||1),T3=+(P.get('c')||2.2);const a=el('div','big',{top:'230px',fontSize:'84px'},'ЗАДАЧУ СТАВИШЬ <span style="color:#FF7A45">ТЫ</span>');a.style.opacity=prog(t,T1,.4);a.style.transform=`translateY(${(1-prog(t,T1,.4))*40}px)`;R.append(a);
+  const b=el('div','big',{top:'380px',fontSize:'84px'},'ПРОВЕРЯЕШЬ <span style="color:#FF7A45">ТЫ</span>');b.style.opacity=prog(t,T2,.4);b.style.transform=`translateY(${(1-prog(t,T2,.4))*40}px)`;R.append(b);
+  const c=el('div','big',{top:'600px',fontSize:'60px',color:'#34C759'},'рутина: часы → минуты');c.style.opacity=prog(t,T3,.4);R.append(c)},
+};
+window.renderAt=(t)=>{CARDS[CARD](t)};
+</script></body></html>
