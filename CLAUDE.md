@@ -153,6 +153,8 @@
 - 12.10 пилот: «было→стало» /f/ozhiv-p1 (свадьба 1961), p2 (прадед 1943), p3 (мама 1985) — reel.mp4 по 10 с: старое фото 2,3 с (still+push) → восстановленное 1,7 с → Grok 6 с; текст Sub (y=1330) без pop. Мультик /f/ozhiv-cartoon1/reel.mp4 29 с (sheet.png персонажи, s1–s5 Grok по 6 с). Музыка Suno piano «Память» 9e4bc55c…/0c65bf0e…. Расход пилота ≈444 кр. Новое в compose: части {"still": url, "push": bool}, "pop": false — статичный текст.
 - 12.10 аккаунт оживления в Postiz: `cmv5l4kgb0h88qc0yonwrv48i` (instagram-standalone, имя «foto»). Аватар /f/ozhiv-brand/avatar.png. Расписание: 12.10 21:45 мультик, 13.10 20:00 прадед, 14.10 20:00 свадьба, 15.10 20:00 мама. Дальше нужны новые ролики с 16.10.
 
+- 14.10 по комментарию подписчицы: дед «Хамриев Ахмат, 1910 г.р.» → /f/ozhiv-ahmat/new.png (реставрация+цвет, cover по ref old_crop) и reel.mp4 15,5 с (старое 4,5 с → новое 4,8 с → Grok alive.mp4; песня Suno «Дедушка родной» db406ed8…, отрезок 10,4–25,9 = припев). Расход 57 кр (18+27+12). Grok i2v: kie_raw model `grok-imagine/image-to-video`, input {image_urls:[url], prompt, mode:"normal", duration:"6", resolution:"720p"} → 27 кр, ~1 мин. Публично ролик — только с согласия автора комментария.
+
 ## Автомонтаж говорящей головы (14.10, пилот)
 - Движок: tools/montage/ (в контейнере). Распознавание речи: на сервере `story` scenes=[{"transcribe": audio_url}] → faster-whisper small (pylib /opt/carousel/pylib), слова в result.words. kie elevenlabs/speech-to-text зависал (timeout). PyPI/npm из контейнера заблокированы.
 - Границы фраз — по silencedetect (-35dB, 0.25 c): тайминги whisper смещены. Берём последний удачный дубль.
