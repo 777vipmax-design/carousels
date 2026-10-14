@@ -618,6 +618,46 @@ def do_remix(post, music_url, vol, src_name, out_name):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_brand_cover(post, bg_url, ov_url, out_name, reel_src, reel_out):
+    """Composite a transparent headline PNG over a background (1080x1920 cover). Optionally burn the
+    cover into the FIRST FRAME of a reel (1 frame, no shift of audio) so Instagram uses it as thumbnail."""
+    post, d = post_dir(post)
+    work = tempfile.mkdtemp(prefix="bcov-")
+    try:
+        bg = os.path.join(work, "bg.png")
+        with open(bg, "wb") as f:
+            f.write(http_get(bg_url, timeout=120))
+        cmd = ["ffmpeg", "-y", "-v", "error", "-i", bg]
+        fc = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[b]"
+        if ov_url:
+            ov = os.path.join(work, "ov.png")
+            with open(ov, "wb") as f:
+                f.write(http_get(ov_url, timeout=120))
+            cmd += ["-i", ov]
+            fc += ";[1:v]scale=1080:1920[o];[b][o]overlay=0:0[c]"
+        else:
+            fc += ";[b]null[c]"
+        out = os.path.join(d, out_name)
+        subprocess.run(cmd + ["-filter_complex", fc, "-map", "[c]", "-frames:v", "1", out],
+                       check=True, capture_output=True)
+        res = {"url": public_url(post, out_name), "file": out}
+        if reel_src:
+            src = os.path.join(d, reel_src)
+            dst = os.path.join(d, reel_out)
+            tmp = dst + ".tmp.mp4"
+            with RENDER_LOCK:
+                subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-i", out, "-filter_complex",
+                                "[1:v]scale=1080:1920,format=yuv420p[c];[0:v][c]overlay=0:0:enable='eq(n,0)'[v]",
+                                "-map", "[v]", "-map", "0:a", "-c:v", "libx264", "-preset", "medium", "-crf", "19",
+                                "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", tmp],
+                               check=True, capture_output=True)
+            os.replace(tmp, dst)
+            res["reel"] = public_url(post, reel_out)
+        return res
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def do_mv(post, spec):
     with RENDER_LOCK:
         import story
@@ -884,6 +924,10 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("brand_cover"):  # [{"brand_cover": bg_url, "overlay": png_url, "out": "cover.png", "reel": "reel.mp4"}]
+        jid = start_job("cover", do_brand_cover, a["post"], first["brand_cover"], first.get("overlay"),
+                        first.get("out", "cover.png"), first.get("reel"), first.get("reel_out", first.get("reel")))
+        return text_result(f"job_id: {jid} — обложка ~10 с (+ первый кадр рилса ~2 мин)")
     if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
         jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
                         first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"))

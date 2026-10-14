@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;background:transparent;font-family:Inter,sans-serif;overflow:hidden}
+.shade{position:absolute;left:0;right:0;top:0;height:900px;background:linear-gradient(180deg,rgba(10,11,14,.85) 0%,rgba(10,11,14,.55) 60%,rgba(10,11,14,0) 100%)}
+.wrap{position:absolute;left:80px;right:80px;text-align:center}
+.l1{font-weight:900;color:#fff;line-height:1;letter-spacing:-1px;text-shadow:0 6px 30px rgba(0,0,0,.6)}
+.l2{font-weight:900;color:#FF7A45;line-height:1;letter-spacing:-1px;text-shadow:0 6px 30px rgba(0,0,0,.6)}
+.tag{display:inline-block;margin-bottom:26px;font-weight:800;font-size:38px;color:#0b0c10;background:#FF7A45;border-radius:14px;padding:8px 22px}
+</style></head><body><div class="shade"></div>
+<div class="wrap" id="w" style="top:270px"></div>
+<script>
+const P=new URLSearchParams(location.search);
+const tag=P.get('tag'),a=P.get('a'),b=P.get('b');
+const w=document.getElementById('w');
+w.innerHTML=(tag?`<div class="tag">${tag}</div>`:'')+`<div class="l1" id="a">${a}</div><div class="l2" id="b">${b||''}</div>`;
+function fit(el,max){let s=max;el.style.fontSize=s+'px';el.style.whiteSpace='nowrap';while(el.scrollWidth>920&&s>40){s-=2;el.style.fontSize=s+'px'}}
+fit(document.getElementById('a'),+(P.get('sa')||150));fit(document.getElementById('b'),+(P.get('sb')||120));
+</script></body></html>
