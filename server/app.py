@@ -50,7 +50,7 @@ W, H = 1080, 1920
 
 JOBS = {}
 JOBS_LOCK = threading.Lock()
-POOL = ThreadPoolExecutor(max_workers=2)
+POOL = ThreadPoolExecutor(max_workers=6)  # long kie waits (Kling) must not block quick renders; RENDER_LOCK still serialises ffmpeg
 TTS_POOL = ThreadPoolExecutor(max_workers=4)
 RENDER_LOCK = threading.Lock()  # 2 GB RAM: render one video at a time (parallel builds were OOM-killed)
 
