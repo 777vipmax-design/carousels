@@ -29,12 +29,18 @@ def ts(t):
 
 
 def build_talk(plan, work):
+    """Cut keep-ranges frame-accurately: every piece is an exact number of frames, audio padded/trimmed
+    to the same length, so voice and picture never drift apart after concatenation."""
     lst = os.path.join(work, "keep.txt")
     with open(lst, "w") as f:
         for i, (s, e) in enumerate(plan["keep"]):
-            p = os.path.join(work, f"k{i:03d}.mp4")
-            run(["ffmpeg", "-y", "-v", "error", "-ss", f"{s:.3f}", "-to", f"{e:.3f}", "-i", plan["src"],
-                 "-vf", f"fps={FPS},scale=1072:1904,setsar=1", "-af", "aresample=48000,afade=t=in:d=0.02,afade=t=out:st=" + f"{max(0, e - s - 0.03):.3f}:d=0.03",
+            n = max(1, round((e - s) * FPS))
+            dur = n / FPS
+            p = os.path.join(work, f"k{i:03d}.mov")
+            run(["ffmpeg", "-y", "-v", "error", "-ss", f"{s:.3f}", "-i", plan["src"], "-t", f"{dur:.4f}",
+                 "-vf", f"fps={FPS},scale=1072:1904,setsar=1", "-frames:v", str(n),
+                 "-af", f"aresample=48000,atrim=0:{dur:.4f},apad=whole_dur={dur:.4f},"
+                        f"afade=t=in:d=0.02,afade=t=out:st={max(0, dur - 0.03):.4f}:d=0.03",
                  "-c:v", "libx264", "-preset", "veryfast", "-crf", "14", "-c:a", "pcm_s16le", p])
             f.write(f"file '{p}'\n")
     talk = os.path.join(work, "talk.mov")
@@ -90,7 +96,7 @@ WrapStyle: 2
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Inter Black,74,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,7,3,5,60,60,0,1
+Style: Sub,Inter Black,66,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,7,3,5,110,110,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

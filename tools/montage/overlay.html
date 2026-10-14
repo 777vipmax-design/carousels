@@ -10,13 +10,13 @@ const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));const ease=x=>{x=cl(x);return 1-
 function el(cls,css,html){const e=document.createElement('div');e.className=cls;Object.assign(e.style,css||{});e.innerHTML=html;return e}
 const O={
  hook(t){R.innerHTML='';const out=1-prog(t,3.1,.35);
-  const a=el('l',{top:'170px',fontSize:'118px',letterSpacing:'1px'},'5 СОТРУДНИКОВ');const p=prog(t,0,.35);a.style.opacity=p*out;a.style.transform=`translateY(${(1-p)*-60}px)`;R.append(a);
-  const b=el('l',{top:'320px',fontSize:'104px'},'<span class="p" style="background:#FF7A45;color:#111;text-shadow:none">0 ₽ ЗАРПЛАТЫ</span>');const q=prog(t,.45,.35);b.style.opacity=q*out;b.style.transform=`scale(${.8+.2*q})`;R.append(b)},
+  const a=el('l',{top:'190px',fontSize:'92px',padding:'0 90px'},'5 СОТРУДНИКОВ');const p=prog(t,0,.35);a.style.opacity=p*out;a.style.transform=`translateY(${(1-p)*-60}px)`;R.append(a);
+  const b=el('l',{top:'320px',fontSize:'84px',padding:'0 90px'},'<span class="p" style="background:#FF7A45;color:#111;text-shadow:none">0 ₽ ЗАРПЛАТЫ</span>');const q=prog(t,.45,.35);b.style.opacity=q*out;b.style.transform=`scale(${.8+.2*q})`;R.append(b)},
  cta(t){R.innerHTML='';
   const a=el('l',{top:'210px',fontSize:'66px'},'Напиши в комментариях');const p=prog(t,0,.35);a.style.opacity=p;a.style.transform=`translateY(${(1-p)*-40}px)`;R.append(a);
-  const b=el('l',{top:'320px',fontSize:'128px'},'<span class="p" style="background:#34C759;color:#0b0c10;text-shadow:none">КОМАНДА</span>');const q=prog(t,.35,.35);b.style.opacity=q;b.style.transform=`scale(${.7+.3*q})`;R.append(b);
-  const c=el('l',{top:'520px',fontSize:'52px',color:'#fff'},'пришлю список нейросетей и промты');c.style.opacity=prog(t,.9,.35);R.append(c)},
- glitch(t){R.innerHTML='';const a=el('l',{top:'200px',fontSize:'96px'},'<span class="p" style="background:#111;color:#FF7A45;text-shadow:none;font-family:monospace">&lt;смонтировано ИИ/&gt;</span>');const p=prog(t,0,.25);a.style.opacity=p*(1-prog(t,2.4,.3));a.style.transform=`translateX(${(Math.sin(t*60)*6)*(1-p)}px)`;R.append(a)}
+  const b=el('l',{top:'320px',fontSize:'104px',padding:'0 90px'},'<span class="p" style="background:#34C759;color:#0b0c10;text-shadow:none">КОМАНДА</span>');const q=prog(t,.35,.35);b.style.opacity=q;b.style.transform=`scale(${.7+.3*q})`;R.append(b);
+  const c=el('l',{top:'500px',fontSize:'48px',color:'#fff',padding:'0 90px'},'пришлю список нейросетей и промты');c.style.opacity=prog(t,.9,.35);R.append(c)},
+ glitch(t){R.innerHTML='';const a=el('l',{top:'200px',fontSize:'70px',padding:'0 90px'},'<span class="p" style="background:#111;color:#FF7A45;text-shadow:none;font-family:monospace">&lt;смонтировано ИИ/&gt;</span>');const p=prog(t,0,.25);a.style.opacity=p*(1-prog(t,2.4,.3));a.style.transform=`translateX(${(Math.sin(t*60)*6)*(1-p)}px)`;R.append(a)}
 };
 window.renderAt=t=>O[C](t);
 </script></body></html>

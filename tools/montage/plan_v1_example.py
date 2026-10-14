@@ -22,8 +22,7 @@ SEGS = [
     (123.34, 124.70, "Задачу ставишь ты.", ["ты"], "head"),
     (126.97, 128.38, "Проверяешь тоже ты.", ["ты"], "head"),
     (134.87, 140.33, "Зато рутину, на которую уходили часы, он теперь собирает за минуту.", ["часы", "минуту"], "head"),
-    (150.37, 152.50, "Хочешь список нейросетей под", ["список"], "ask"),
-    (160.86, 164.15, "каждую роль и промты к ним?", ["промты"], "ask"),
+    (160.86, 164.15, "Хочешь список нейросетей под каждую роль и промты к ним?", ["список", "промты"], "ask"),
     (171.75, 175.12, "Напиши в комментариях «команда» — и пришлю.", ["команда"], "cta"),
 ]
 
@@ -31,7 +30,7 @@ keep, out_t, blocks = [], 0.0, []
 for s, e, text, hi, blk in SEGS:
     s0, e1 = s - PAD0, e + PAD1
     keep.append([round(s0, 3), round(e1, 3)])
-    d = e1 - s0
+    d = round((e1 - s0) * 30) / 30
     blocks.append({"t0": out_t, "t1": out_t + d, "speech0": out_t + PAD0, "speech1": out_t + PAD0 + (e - s),
                    "text": text, "hi": hi, "blk": blk})
     out_t += d
@@ -57,7 +56,16 @@ for b in blocks:
     y = FULL_Y if mode_of.get(b["blk"]) == "full" else SPLIT_Y
     for c, L in zip(chunks, lens):
         dt = span * L / tot
-        subs.append([round(t, 3), round(t + dt, 3), " ".join(c).upper(), [h.lower() for h in b["hi"]], y])
+        txt = " ".join(c).upper()
+        if len(txt) > 17 and " " in txt:
+            ws = txt.split(); best = None
+            for k in range(1, len(ws)):
+                a, bb = " ".join(ws[:k]), " ".join(ws[k:])
+                sc = max(len(a), len(bb))
+                if best is None or sc < best[0]:
+                    best = (sc, a + " \\N " + bb)
+            txt = best[1]
+        subs.append([round(t, 3), round(t + dt, 3), txt, [h.lower() for h in b["hi"]], y])
         t += dt
 # stretch each sub to next start
 for i in range(len(subs) - 1):
