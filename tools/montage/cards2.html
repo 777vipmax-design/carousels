@@ -1,0 +1,59 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:960px;overflow:hidden;background:transparent;font-family:Inter,'Inter Display',sans-serif;color:#fff}
+#root{position:absolute;inset:0}
+:root{--acc:#B388FF}
+.mono{font-family:"DejaVu Sans Mono",monospace}
+.tag{position:absolute;font-weight:900;font-size:30px;padding:8px 18px;border-radius:12px}
+.bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 50% 0%,#23263a 0%,#0e0f14 60%,#0b0c10 100%)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:60px 60px}
+.win{position:absolute;left:70px;right:70px;top:150px;bottom:110px;background:#171922;border:2px solid #2a2d3a;border-radius:34px;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
+.bar{height:74px;display:flex;align-items:center;padding:0 30px;gap:14px;border-bottom:2px solid #262935}
+.dot{width:18px;height:18px;border-radius:50%}
+.ttl{font-weight:800;font-size:30px;letter-spacing:.5px;margin-left:12px;color:#c9ccd8}
+.role{position:absolute;left:70px;top:46px;display:flex;align-items:center;gap:18px}
+.num{font-weight:900;font-size:40px;color:#0e0f14;background:var(--acc);border-radius:14px;padding:4px 16px}
+.rname{font-weight:900;font-size:58px;letter-spacing:1px}
+.pill{position:absolute;right:70px;bottom:40px;font-weight:900;font-size:34px;padding:14px 28px;border-radius:40px;background:#34C759;color:#0b0c10}
+.bub{position:absolute;font-size:34px;line-height:1.3;padding:22px 28px;border-radius:26px;max-width:760px}
+.me{right:30px;background:var(--acc);color:#111;font-weight:700}
+.ai{left:30px;background:#232634;color:#eef0f6;font-weight:600;white-space:pre-wrap}
+.tile{position:absolute;width:270px;height:340px;border-radius:24px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:900;font-size:46px;line-height:1.05}
+.track{position:absolute;left:40px;right:40px;height:70px;border-radius:14px;background:#1f2230}
+.clip{position:absolute;top:8px;height:54px;border-radius:10px}
+.barc{position:absolute;bottom:90px;width:90px;border-radius:14px 14px 4px 4px;background:#3a7bff}
+.lbl{position:absolute;bottom:40px;width:130px;text-align:center;font-size:24px;color:#9aa0b4;font-weight:600}
+.row{position:absolute;left:30px;right:30px;height:96px;border-radius:20px;background:#202331;display:flex;align-items:center;padding:0 26px;font-size:32px;font-weight:700;gap:20px}
+.chk{margin-left:auto;font-size:28px;font-weight:900;color:#0b0c10;background:#34C759;padding:8px 18px;border-radius:30px}
+.big{position:absolute;left:0;right:0;text-align:center;font-weight:900}
+</style></head><body><div id="root"></div>
+<script>
+const R=document.getElementById('root');
+const P=new URLSearchParams(location.search);const CARD=P.get('card');
+const ACC=P.get('acc')||'#B388FF';document.documentElement.style.setProperty('--acc',ACC);
+const T=k=>+(P.get(k)||0);
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=x=>{x=cl(x);return 1-Math.pow(1-x,3)};
+const prog=(t,s,d)=>ease((t-s)/d);
+function el(tag,cls,css,html){const e=document.createElement(tag);if(cls)e.className=cls;if(css)Object.assign(e.style,css);if(html!==undefined)e.innerHTML=html;return e}
+function frame(num,name,title){R.innerHTML='';R.append(el('div','bg'),el('div','grid'));
+  const role=el('div','role');if(num)role.append(el('div','num',null,num));role.append(el('div','rname',null,name));R.append(role);
+  const w=el('div','win');const b=el('div','bar');['#ff5f57','#febc2e','#28c840'].forEach(c=>b.append(el('div','dot',{background:c})));
+  b.append(el('div','ttl',null,title));w.append(b);R.append(w);return {w,role}}
+function intro(t,f,s=0){const p=prog(t,s,.45);f.role.style.transform=`translateX(${(1-p)*-80}px)`;f.role.style.opacity=p;
+  f.w.style.transform=`translateY(${(1-prog(t,s+.05,.5))*80}px) scale(${.96+.04*prog(t,s+.05,.5)})`;f.w.style.opacity=prog(t,s+.05,.4)}
+function pill(t,s,txt,bg,col){if(t<s)return;const p=el('div','pill',{background:bg||'#34C759',color:col||'#0b0c10'},txt);const q=prog(t,s,.3);p.style.opacity=q;p.style.transform=`scale(${.85+.15*q})`;R.append(p)}
+function typed(s,t,start,cps){const n=Math.floor(cl((t-start)*cps,0,s.length));return s.slice(0,n)}
+function fmt(sec){sec=Math.max(0,Math.round(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
+// pseudo-random waveform
+function wave(n,seed){const a=[];let x=seed;for(let i=0;i<n;i++){x=(x*9301+49297)%233280;a.push(.25+.75*Math.abs(Math.sin(i*.37+seed))*(.5+.5*x/233280))}return a}
+const CARDS={};
+</script>
+<script src="cards_v2.js"></script>
+<script src="cards_v3.js"></script>
+<script src="cards_v4.js"></script>
+<script src="cards_v5.js"></script>
+<script src="cards_v6.js"></script>
+<script>window.renderAt=(t)=>{CARDS[CARD](t)};</script></body></html>

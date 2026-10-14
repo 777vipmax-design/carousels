@@ -67,6 +67,20 @@ def render_shot(i, shot, talk, plan, work):
         vf = f"fps={FPS}," + crop_expr(cx, cyo, z, shot.get("push", False), dur) + ",setsar=1"
         run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t0:.3f}", "-t", f"{dur:.3f}", "-i", talk, "-vf", vf, "-an",
              "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", out])
+    elif shot["mode"] == "screen":  # full-screen card (e.g. site demo) + round face picture-in-picture
+        card = shot["card"]
+        D = shot.get('pip_d', 300)
+        sw, sh = 1072, 1904
+        side = 0.42 * sh
+        x = max(0, min(sw - side, cx * sw - side / 2)); y = max(0, min(sh - side, (cy - 0.03) * sh - side / 2))
+        fc = (f"[1:v]scale={W}:{H},setsar=1,fps={FPS},tpad=stop_mode=clone:stop_duration=30,trim=duration={dur:.3f}[bg];"
+              f"[0:v]crop={side:.1f}:{side:.1f}:{x:.1f}:{y:.1f},scale={D}:{D},format=rgba,"
+              f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lte(hypot(X-{D/2},Y-{D/2}),{D/2-4}),255,0)'[pip];"
+              f"color=c=white:s={D+12}x{D+12},format=rgba,geq=r='255':g='255':b='255':a='if(lte(hypot(X-{(D+12)/2},Y-{(D+12)/2}),{(D+12)/2}),255,0)'[ring];"
+              f"[bg][ring]overlay={shot.get('pip_x', 60) - 6}:{shot.get('pip_y', 194)}:shortest=1[b1];[b1][pip]overlay={shot.get('pip_x', 60)}:{shot.get('pip_y', 194) + 6}:shortest=1[v]")
+        run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t0:.3f}", "-t", f"{dur:.3f}", "-i", talk, "-i", card,
+             "-filter_complex", fc, "-map", "[v]", "-an", "-t", f"{dur:.3f}",
+             "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", out])
     else:  # split: card on top, face crop at bottom
         ch_frac = shot.get("face_h", 0.47)  # fraction of source height shown in bottom half
         sh, sw = 1904, 1072
@@ -101,6 +115,8 @@ Style: Sub,Inter Black,66,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,10
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
+    hc = plan.get("hi_color", "#FF7A45").lstrip("#")
+    hic = f"&H{hc[4:6]}{hc[2:4]}{hc[0:2]}&".upper()
     lines = []
     for ev in plan.get("subs", []):
         t0, t1, text = ev[0], ev[1], ev[2]
@@ -110,7 +126,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for w in text.split():
             core = w.strip(".,!?«»—:;").lower()
             if core in hi:
-                words.append("{\\c&H4579FF&}" + w + "{\\c&HFFFFFF&}")
+                words.append("{\\c" + hic + "}" + w + "{\\c&HFFFFFF&}")
             else:
                 words.append(w)
         fade = "{\\fad(80,60)}"

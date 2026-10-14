@@ -10,7 +10,7 @@ html,body{width:1080px;height:1920px;background:transparent;font-family:Inter,sa
 <div class="wrap" id="w" style="top:270px"></div>
 <script>
 const P=new URLSearchParams(location.search);
-const tag=P.get('tag'),a=P.get('a'),b=P.get('b');
+const tag=P.get('tag'),a=P.get('a'),b=P.get('b'),acc=P.get('acc')||'#FF7A45';document.querySelectorAll('style')[0].textContent+=`.l2{color:${acc}}.tag{background:${acc}}`;
 const w=document.getElementById('w');
 w.innerHTML=(tag?`<div class="tag">${tag}</div>`:'')+`<div class="l1" id="a">${a}</div><div class="l2" id="b">${b||''}</div>`;
 function fit(el,max){let s=max;el.style.fontSize=s+'px';el.style.whiteSpace='nowrap';while(el.scrollWidth>920&&s>40){s-=2;el.style.fontSize=s+'px'}}
