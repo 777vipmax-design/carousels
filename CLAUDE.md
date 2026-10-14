@@ -155,6 +155,12 @@
 
 - 14.10 по комментарию подписчицы: дед «Хамриев Ахмат, 1910 г.р.» → /f/ozhiv-ahmat/new.png (реставрация+цвет, cover по ref old_crop) и reel.mp4 15,5 с (старое 4,5 с → новое 4,8 с → Grok alive.mp4; песня Suno «Дедушка родной» db406ed8…, отрезок 10,4–25,9 = припев). Расход 57 кр (18+27+12). Grok i2v: kie_raw model `grok-imagine/image-to-video`, input {image_urls:[url], prompt, mode:"normal", duration:"6", resolution:"720p"} → 27 кр, ~1 мин. Публично ролик — только с согласия автора комментария.
 
+## 14.10 вечер: пачка роликов (ждут одобрения, в Postiz НЕ ставить до «ок»)
+- Фото: ozhiv-sevara/reel_music.mp4 (история Севары, 31,6 с, озвучка g31:Sulafat:Empathetic через voice_samples → put_file voice.mp3 → compose с music=голос → remix пианино; ник и аватар Севары размыты, согласие есть); ozhiv-b1958, f1944, k1979, c1965 (/reel.mp4, 10,5 с, вымышленные люди; c1965 с призывом «пришлите фото — 3 лучших оживлю бесплатно»). Пианино Suno «Память сердца» 1ee45609…/d9f38239….
+- Алина (формат ХУК+ПРИПЕВ, решение 14.10): alina-nastya, alina-katya, alina-sasha /reel.mp4 (30–32 с), заголовок «ПЕСНЯ ДЛЯ …», Kling `kling/ai-avatar-standard` ≈ 8 кр/с (240–256 за ролик). ⚠ Kling иногда рисует внизу ФЕЙКОВЫЕ СУБТИТРЫ (каракули) — когда в промте есть «speaks the opening line». Лечение: `story` [{"crop":[0.12,0,0.76,0.76],"src_file":"comp_v00.mp4","out":"comp_crop.mp4"}] → compose с video=comp_crop. В промтах Kling писать «no text, no subtitles on screen».
+- Зина: meme-z5 самокат, z6 Нива (⚠ странность: на руле чужая рука, Зина у окна сбоку), z7 гидроцикл; песня «Бабка на газу» 655d3c97… (z5 3–18 с, z6 22,8–37,8, z7 39,4–54,4).
+- Сервер: POOL 2→6 воркеров (Kling-ожидания блокировали быстрые рендеры), новый маршрут crop. После update записи задач теряются — превью смотреть до update.
+
 ## Автомонтаж говорящей головы (14.10, пилот)
 - Движок: tools/montage/ (в контейнере). Распознавание речи: на сервере `story` scenes=[{"transcribe": audio_url}] → faster-whisper small (pylib /opt/carousel/pylib), слова в result.words. kie elevenlabs/speech-to-text зависал (timeout). PyPI/npm из контейнера заблокированы.
 - Границы фраз — по silencedetect (-35dB, 0.25 c): тайминги whisper смещены. Берём последний удачный дубль.
