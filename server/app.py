@@ -1069,6 +1069,14 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("zip"):  # [{"zip": {"dir/name.ext": url, ...}, "out": "kit.zip"}] -> /f/<post>/<out>
+        import zipfile
+        post, d = post_dir(a["post"])
+        out = first.get("out", "kit.zip")
+        with zipfile.ZipFile(os.path.join(d, out), "w", zipfile.ZIP_DEFLATED) as z:
+            for name, url in first["zip"].items():
+                z.writestr(name, http_get(url, timeout=120))
+        return text_result(public_url(post, out))
     if first.get("botstatus"):  # [{"botstatus": true, "set": {"lesson_url": ...}}]
         import montage_bot
         if first.get("set"):

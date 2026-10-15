@@ -1,0 +1,72 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#0a0b0f;font-family:Inter,'Inter Display',sans-serif;color:#fff}
+#cam{position:absolute;inset:0;transform-origin:50% 40%}
+#root{position:absolute;inset:0}
+.bg{position:absolute;inset:0;background:radial-gradient(900px 900px at 50% 28%,var(--glow) 0%,rgba(10,11,15,0) 70%),linear-gradient(#0d0e14,#08090c)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(800px 1000px at 50% 35%,#000 30%,transparent 80%)}
+.hdr{position:absolute;left:70px;top:150px;display:flex;align-items:center;gap:20px}
+.num{font-weight:900;font-size:48px;color:#0a0b0f;background:var(--acc);border-radius:16px;padding:6px 18px}
+.role{font-weight:900;font-size:76px;letter-spacing:1px}
+.skill{position:absolute;left:70px;top:262px;font-family:"DejaVu Sans Mono",monospace;font-size:34px;color:var(--acc);background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);padding:8px 20px;border-radius:14px}
+.win{position:absolute;left:60px;right:60px;top:360px;height:860px;background:rgba(23,25,34,.92);border:2px solid #2b2e3c;border-radius:38px;box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.03) inset;overflow:hidden}
+.bar{height:78px;display:flex;align-items:center;padding:0 30px;gap:14px;border-bottom:2px solid #262935}
+.dot{width:18px;height:18px;border-radius:50%}
+.ttl{font-weight:700;font-size:28px;color:#9aa0b4;margin-left:12px}
+.bub{position:absolute;font-size:36px;line-height:1.3;padding:22px 30px;border-radius:28px;max-width:800px;font-weight:700}
+.me{right:30px;background:var(--acc);color:#111}
+.chip{position:absolute;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;text-align:center;border:2px solid rgba(255,255,255,.14);background:rgba(28,30,42,.9);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.big{position:absolute;left:0;right:0;text-align:center;font-weight:900;line-height:1}
+.mono{font-family:"DejaVu Sans Mono",monospace}
+</style></head><body><div id="cam"><div id="root"></div></div>
+<script src="words.js"></script><script src="script.js"></script>
+<script>
+const R=document.getElementById('root'),CAM=document.getElementById('cam');
+const P=new URLSearchParams(location.search);
+const TL=(P.get('tl')||'0,3,6,9,12,15,18,21,24,27').split(',').map(Number); // scene starts + end
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=x=>{x=cl(x);return 1-Math.pow(1-x,3)};
+const back=x=>{x=cl(x);const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const pr=(t,s,d)=>ease((t-s)/d);
+function el(tag,cls,css,html){const e=document.createElement(tag);if(cls)e.className=cls;if(css)Object.assign(e.style,css);if(html!==undefined)e.innerHTML=html;return e}
+const ROLES=[['ДИЗАЙНЕР','#FF7A45','frontend-design','◆'],['ПРЕЗЕНТАЦИИ','#4FD1FF','pptx','▤'],['АНАЛИТИК','#34C759','xlsx','▦'],['ХУДОЖНИК','#FF5FD2','canvas-design','●'],['ТРЕНЕР','#FFC24D','skill-creator','✦']];
+function base(acc,glow){R.innerHTML='';document.documentElement.style.setProperty('--acc',acc);document.documentElement.style.setProperty('--glow',glow||acc+'33');R.append(el('div','bg'),el('div','grid'))}
+function header(t,i){const [n,c,s]=ROLES[i];const h=el('div','hdr');h.append(el('div','num',null,'0'+(i+1)),el('div','role',null,n));const p=pr(t,0,.4);h.style.opacity=p;h.style.transform=`translateX(${(1-p)*-120}px)`;R.append(h);
+ const k=el('div','skill',null,s);const q=pr(t,.15,.4);k.style.opacity=q;k.style.transform=`translateY(${(1-q)*30}px)`;R.append(k)}
+function win(t,title,s=.1){const w=el('div','win');const b=el('div','bar');['#ff5f57','#febc2e','#28c840'].forEach(c=>b.append(el('div','dot',{background:c})));b.append(el('div','ttl',null,title));w.append(b);
+ const p=pr(t,s,.5);w.style.opacity=cl((t-s)/.3);w.style.transform=`translateY(${(1-p)*140}px) scale(${.94+.06*p})`;R.append(w);return w}
+function hdr(t,num,name,tag){const h=el('div','hdr');if(num)h.append(el('div','num',null,num));h.append(el('div','role',null,name));const p=pr(t,0,.4);h.style.opacity=p;h.style.transform=`translateX(${(1-p)*-120}px)`;R.append(h);
+ if(tag){const k=el('div','skill',null,tag);const q=pr(t,.15,.4);k.style.opacity=q;k.style.transform=`translateY(${(1-q)*30}px)`;R.append(k)}}
+function pill(t,s,txt,bg,col,top){if(t<s)return;const f=el('div',null,{position:'absolute',left:'50%',top:(top||1235)+'px',transform:`translateX(-50%) scale(${back((t-s)/.3)})`,background:bg||'var(--acc)',color:col||'#0a0b0f',fontWeight:'900',fontSize:'46px',padding:'14px 36px',borderRadius:'40px',whiteSpace:'nowrap'},txt);R.append(f)}
+function bigt(t,s,txt,top,size,color){const a=el('div','big',{top:top+'px',fontSize:size+'px',color:color||'#fff'},txt);const p=back((t-s)/.45);a.style.transform=`scale(${.6+.4*cl(p,0,1.2)})`;a.style.opacity=cl((t-s)/.2);R.append(a);return a}
+function cta(t,d,word,items,acc){base(acc,acc+'40');
+ const a=el('div','big',{top:'240px',fontSize:'64px',color:'#c9ccd8'},'НАПИШИ В КОММЕНТАРИЯХ');a.style.opacity=pr(t,0,.3);R.append(a);
+ const box=el('div',null,{position:'absolute',left:'90px',right:'90px',top:'420px',height:'190px',borderRadius:'95px',background:'#1c1e2a',border:'3px solid '+acc,display:'flex',alignItems:'center',padding:'0 60px',fontSize:(word.length>7?92:110)+'px',fontWeight:'900',letterSpacing:'4px',boxShadow:'0 0 80px '+acc+'55'});
+ const p=back((t-.1)/.45);box.style.transform=`scale(${cl(p,0,1.2)})`;box.innerHTML=typed(word,t,.5,9)+(t<1.3||t%0.8<0.4?`<span style="color:${acc}">|</span>`:'');R.append(box);
+ items.forEach((x,i)=>{const s=1.2+i*.25;if(t<s)return;const q=pr(t,s,.3);R.append(el('div',null,{position:'absolute',left:'140px',top:(700+i*120)+'px',fontSize:'48px',fontWeight:'800',opacity:q,transform:`translateX(${(1-q)*-80}px)`},`<span style="color:#34C759;margin-right:20px">✓</span>${x}`))});
+ if(t>d*.6){const k=back((t-d*.6)/.4);R.append(el('div',null,{position:'absolute',left:'50%',top:'1130px',transform:`translateX(-50%) scale(${cl(k,0,1.2)})`,background:'#fff',color:'#0a0b0f',fontWeight:'900',fontSize:'50px',padding:'18px 44px',borderRadius:'44px',display:'flex',gap:'18px',alignItems:'center'},'<span style="font-size:54px">🔖</span> СОХРАНИ'))}}
+function typed(s,t,st,cps){return s.slice(0,Math.floor(cl((t-st)*cps,0,s.length)))}
+
+const S=[];
+</script>
+<script src="scenes.js"></script>
+<script>
+function subs(T){if(typeof WORDS==='undefined'||P.get('nosub'))return;
+ // chunks: [t0,t1,[[w,ws,we]...]]
+ const c=CHUNKS.find(c=>T>=c[0]&&T<c[1]);if(!c)return;
+ const box=el('div',null,{position:'absolute',left:'70px',right:'70px',top:'1350px',textAlign:'center',fontWeight:'900',fontSize:'76px',lineHeight:'1.12',textShadow:'0 6px 24px rgba(0,0,0,.8)'});
+ const q=pr(T,c[0],.12);box.style.opacity=q;box.style.transform=`translateY(${(1-q)*16}px)`;
+ box.innerHTML=c[2].map(w=>`<span style="color:${T>=w[1]?'#fff':'rgba(255,255,255,.45)'}${T>=w[1]&&T<w[2]+.05?';color:var(--acc)':''}">${w[0]}</span>`).join(' ');
+ R.append(box)}
+function renderAt(T){
+ let i=0;while(i<TL.length-2&&T>=TL[i+1])i++;
+ const t=T-TL[i],d=TL[i+1]-TL[i];S[Math.min(i,S.length-1)](t,d);subs(T);
+ // camera: slow push + whip on scene start
+ const w=cl(1-t/.25);const z=1+0.03*(t/d)+0.06*w*w;CAM.style.transform=`scale(${z}) translateY(${w*w*-40}px)`;
+ CAM.style.filter=w>0.6?`blur(${(w-.6)*12}px)`:'none';
+}
+renderAt(0);
+</script></body></html>

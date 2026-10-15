@@ -349,6 +349,16 @@ def admin(action, get_bytes):
         if action.get("pin") and mid:
             api(tok, "pinChatMessage", chat_id=ch, message_id=mid, disable_notification=True)
         return {"ok": r.get("ok"), "message_id": mid}
+    if op == "doc":
+        data = get_bytes(action["url"])
+        r = api_file(tok, "sendDocument", {"chat_id": ch, "caption": action.get("caption", ""), "parse_mode": "HTML"},
+                     {"document": (action.get("filename", "file.zip"), data, "application/octet-stream")})
+        return {"ok": r.get("ok"), "message_id": r.get("result", {}).get("message_id")}
+    if op == "edit":
+        r = api(tok, "editMessageText" if not action.get("caption") else "editMessageCaption", chat_id=ch,
+                message_id=int(action["message_id"]), parse_mode="HTML",
+                **({"caption": action["html"]} if action.get("caption") else {"text": action["html"], "disable_web_page_preview": True}))
+        return {"ok": r.get("ok")}
     if op == "delete":
         return api(tok, "deleteMessage", chat_id=ch, message_id=int(action["message_id"]))
     return {"error": "unknown op"}
