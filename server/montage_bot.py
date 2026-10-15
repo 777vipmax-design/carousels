@@ -349,6 +349,18 @@ def admin(action, get_bytes):
         if action.get("pin") and mid:
             api(tok, "pinChatMessage", chat_id=ch, message_id=mid, disable_notification=True)
         return {"ok": r.get("ok"), "message_id": mid}
+    if op == "md":  # photo (caption) + full text of a repo markdown file
+        ids = {}
+        if action.get("photo_url"):
+            r = api_file(tok, "sendPhoto", {"chat_id": ch, "caption": action.get("caption", ""), "parse_mode": "HTML"},
+                         {"photo": ("p.png", get_bytes(action["photo_url"]), "image/png")})
+            ids["photo"] = r.get("result", {}).get("message_id")
+        md = open(os.path.join(REPO, action["path"]), encoding="utf-8").read()
+        ids["text"] = []
+        for part in chunks(md_to_tg(md)):
+            r = api(tok, "sendMessage", chat_id=ch, text=part, parse_mode="HTML", disable_web_page_preview=True)
+            ids["text"].append(r.get("result", {}).get("message_id"))
+        return ids
     if op == "doc":
         data = get_bytes(action["url"])
         r = api_file(tok, "sendDocument", {"chat_id": ch, "caption": action.get("caption", ""), "parse_mode": "HTML"},
