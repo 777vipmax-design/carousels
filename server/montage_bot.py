@@ -24,9 +24,14 @@ GIFTS = {  # start payload / typed code word -> gift file
     "razbor": "razbor", "разбор": "razbor",
     "poisk": "poisk", "поиск": "poisk",
     "klienty": "klienty", "клиенты": "klienty",
+    "montazh": "montazh", "монтаж": "montazh",
+    "kod": "kod", "код": "kod",
+    "sait": "sait", "сайт": "sait",
+    "arena": "arena", "арена": "arena",
 }
 TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instagram на ИИ", "razbor": "REA",
-          "poisk": "find-skills", "klienty": "Клиенты"}
+          "poisk": "find-skills", "klienty": "Клиенты",
+          "montazh": "Автомонтаж", "kod": "Сайт без кода", "sait": "Живые сайты", "arena": "Команда из Claude"}
 ROLES = [("blog", "📱 Блогер"), ("expert", "🎓 Эксперт"), ("biz", "💼 Бизнес"), ("try", "👀 Просто интересно")]
 CFG_FILE = os.path.join(DB_DIR, "config.json")  # {"admin_id":..., "lesson_url":..., "mini_url":..., "course_url":...}
 
