@@ -9,6 +9,7 @@ Files:     https://<domain>/f/<post>/<file>   (served by Caddy from FILES_DIR)
 Config comes from /etc/carousel.env (see install.sh).
 """
 import base64
+import hashlib
 import io
 import json
 import re
@@ -673,7 +674,15 @@ def do_audio_build(post, pieces, voice, speed, out_name):
             if pc.get("say"):
                 tts(pc["say"], pc.get("voice", voice), float(pc.get("speed", speed)), raw)
             elif pc.get("sfx"):
-                _sfx(pc["sfx"], raw)
+                _sfx(pc["sfx"], raw, pc.get("dur"))
+            elif pc.get("file"):  # cut [from, to] out of an existing track (to splice a re-voiced line)
+                srcf = os.path.join(work, "src_" + hashlib.md5(pc["file"].encode()).hexdigest()[:8] + ".mp3")
+                if not os.path.isfile(srcf):
+                    with open(srcf, "wb") as f:
+                        f.write(http_get(pc["file"], timeout=180))
+                a0, a1 = float(pc.get("from", 0)), float(pc["to"])
+                subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{a0:.3f}", "-t", f"{a1 - a0:.3f}", "-i", srcf,
+                                "-c:a", "libmp3lame", "-b:a", "256k", raw], check=True, capture_output=True)
             else:
                 subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i",
                                 f"anullsrc=r=44100:cl=mono", "-t", f"{float(pc.get('silence', 0.3)):.3f}", raw],
@@ -684,7 +693,7 @@ def do_audio_build(post, pieces, voice, speed, out_name):
                             wav], check=True, capture_output=True)
             dur = probe_duration(wav)
             files.append(wav)
-            timeline.append({"k": k, "kind": "say" if pc.get("say") else ("sfx" if pc.get("sfx") else "silence"),
+            timeline.append({"k": k, "kind": "say" if pc.get("say") else ("sfx" if pc.get("sfx") else ("file" if pc.get("file") else "silence")),
                              "start": round(t, 3), "end": round(t + dur, 3), "text": pc.get("say", pc.get("sfx", ""))})
             t += dur
         lst = os.path.join(work, "l.txt")
