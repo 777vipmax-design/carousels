@@ -594,7 +594,7 @@ def _do_story(post, scenes, voice, speed):
         shutil.rmtree(work, ignore_errors=True)
 
 
-def do_remix(post, music_url, vol, src_name, out_name):
+def do_remix(post, music_url, vol, src_name, out_name, mute=None, sfx=None):
     """Lay a music track (e.g. Suno via kie) under an already built reel, ducking it under the voice."""
     post, d = post_dir(post)
     src = os.path.join(d, src_name)
@@ -606,13 +606,26 @@ def do_remix(post, music_url, vol, src_name, out_name):
         with open(mp, "wb") as f:
             f.write(http_get(music_url, timeout=180))
         dur = probe_duration(src)
-        fc = (f"[0:a]asplit=2[v][sc];"
+        vf = "".join(f",volume=0:enable='between(t,{float(a):.3f},{float(b):.3f})'" for a, b in (mute or []))
+        sfx_in, sfx_fc, sfx_lbl = [], "", ""
+        for j, e in enumerate(sfx or []):
+            sp = os.path.join(work, f"sfx{j:02d}.wav")
+            _sfx(e["kind"], sp, e.get("dur"))
+            sfx_in += ["-i", sp]
+            ms = int(float(e["t"]) * 1000)
+            sfx_fc += (f"[{j + 2}:a]aresample=44100,aformat=channel_layouts=stereo,"
+                       f"volume={float(e.get('vol', 1.0))},adelay={ms}|{ms}[x{j}];")
+            sfx_lbl += f"[x{j}]"
+        n = len(sfx or [])
+        fc = (f"[0:a]anull{vf}[v0];" + sfx_fc +
+              (f"[v0]{sfx_lbl}amix=inputs={n + 1}:normalize=0:duration=first[v1];" if n else "[v0]anull[v1];") +
+              f"[v1]asplit=2[v][sc];"
               f"[1:a]aresample=44100,aformat=channel_layouts=stereo,volume={vol},"
               f"afade=t=in:d=0.8,afade=t=out:st={max(0, dur - 2):.2f}:d=2[m];"
               f"[m][sc]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=350[md];"
               f"[v][md]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[aout]")
         out = os.path.join(d, out_name)
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-stream_loop", "-1", "-i", mp,
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-stream_loop", "-1", "-i", mp, *sfx_in,
                         "-filter_complex", fc, "-map", "0:v", "-map", "[aout]", "-c:v", "copy",
                         "-c:a", "aac", "-b:a", "192k", "-t", f"{dur:.3f}", "-movflags", "+faststart", out],
                        check=True, capture_output=True)
@@ -621,9 +634,20 @@ def do_remix(post, music_url, vol, src_name, out_name):
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _sfx(kind, path):
-    """Synthesised sound effects: slam (palm hits a table), riffle (card shuffle), whoosh."""
-    if kind == "slam":
+def _sfx(kind, path, dur=None):
+    """Synthesised sound effects: slam (palm hits a table), riffle (card shuffle), shuffle (long riffle,
+    dur), shake (8-ball rattle, dur), whoosh."""
+    if kind == "shuffle":
+        d = float(dur or 3.0)
+        fc = (f"anoisesrc=d={d:.2f}:c=white:a=0.4,highpass=f=1700,lowpass=f=7500,"
+              "volume='(0.3+0.7*abs(sin(2*PI*30*t)))*(0.2+0.8*pow(abs(sin(2*PI*1.6*t)),2))':eval=frame,"
+              f"afade=t=in:d=0.05,afade=t=out:st={max(0, d - 0.25):.2f}:d=0.25")
+    elif kind == "shake":
+        d = float(dur or 2.0)
+        fc = (f"anoisesrc=d={d:.2f}:c=pink:a=0.8,bandpass=f=1400:w=1800,"
+              "volume='0.15+1.6*pow(abs(sin(2*PI*3.2*t)),8)':eval=frame,"
+              f"afade=t=in:d=0.05,afade=t=out:st={max(0, d - 0.2):.2f}:d=0.2")
+    elif kind == "slam":
         fc = ("sine=f=55:d=0.45,volume=1.6,afade=t=out:st=0.02:d=0.42[a];"
               "anoisesrc=d=0.25:c=brown:a=0.9,lowpass=f=900,afade=t=out:st=0.01:d=0.22,volume=1.4[b];"
               "anoisesrc=d=0.08:c=white:a=0.5,highpass=f=1500,afade=t=out:st=0.0:d=0.08[c];"
@@ -1040,7 +1064,8 @@ def tool_story(a):
         return text_result(f"job_id: {jid} — обложка ~10 с (+ первый кадр рилса ~2 мин)")
     if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
         jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
-                        first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"))
+                        first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"),
+                        first.get("mute"), first.get("sfx"))
         return text_result(f"job_id: {jid} — наложение музыки ~30 с")
     jid = start_job("reel", do_story, a["post"], a["scenes"], a.get("voice", "g31:Gacrux:Promo/Hype:loud"),
                     float(a.get("speed", 1.15)))
