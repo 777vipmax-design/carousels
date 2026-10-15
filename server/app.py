@@ -676,6 +676,27 @@ def do_audio_build(post, pieces, voice, speed, out_name):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_frames(post, url, times):
+    """Grab still frames of any video at given seconds (to look at a clip without downloading it)."""
+    post, d = post_dir(post)
+    work = tempfile.mkdtemp(prefix="fr-")
+    try:
+        src = os.path.join(work, "v.mp4")
+        with open(src, "wb") as f:
+            f.write(http_get(url, timeout=300))
+        prev_dir = os.path.join(d, "_frames")
+        os.makedirs(prev_dir, exist_ok=True)
+        out = []
+        for t in times:
+            fp = os.path.join(prev_dir, f"f_{float(t):06.2f}.jpg")
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{float(t):.3f}", "-i", src, "-frames:v", "1",
+                            "-vf", "scale=360:-2", fp], check=True, capture_output=True)
+            out.append(fp)
+        return {"seconds": round(probe_duration(src), 2), "times": times, "previews": out}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def do_crop(post, src_name, out_name, box, fade):
     """Re-frame a finished reel: crop box [x,y,w,h] in fractions of the frame, scale back to 1080x1920
     (used to cut away artefacts such as fake captions a video model drew near the bottom)."""
@@ -1002,6 +1023,9 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("frames"):  # [{"frames": video_url, "times": [0.5, 1, 1.5]}]
+        jid = start_job("frames", do_frames, a["post"], first["frames"], first.get("times", [0.5, 1.5, 3]))
+        return text_result(f"job_id: {jid} — кадры ~20 с")
     if first.get("audio_build"):  # [{"audio_build": [pieces], "voice": "g31:Kore:Promo/Hype:lyuba", "speed": 1.05, "out": "voice.mp3"}]
         jid = start_job("voice", do_audio_build, a["post"], first["audio_build"], first.get("voice", "g31:Kore::lyuba"),
                         float(first.get("speed", 1.0)), first.get("out", "voice.mp3"))
@@ -1081,7 +1105,7 @@ def tool_job(a):
     if j["state"] == "done":
         if j["kind"] == "cover" and res.get("file"):
             content.append({"type": "image", "mimeType": "image/jpeg", "data": preview_jpeg(res["file"])})
-        if j["kind"] == "reel":
+        if j["kind"] in ("reel", "frames"):
             for p in res.get("previews", []):
                 content.append({"type": "image", "mimeType": "image/jpeg", "data": preview_jpeg(p, 600)})
     info = {k: v for k, v in j.items() if k != "result"}
