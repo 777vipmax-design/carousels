@@ -1069,6 +1069,22 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("botcheck"):  # [{"botcheck": "/opt/montage-bot/.env"}] — is a bot token there and valid? never returns it
+        pth = first["botcheck"] if str(first["botcheck"]).startswith("/opt/") else "/opt/montage-bot/.env"
+        try:
+            tok = ""
+            for line in open(pth):
+                if line.startswith("BOT_TOKEN="):
+                    tok = line.split("=", 1)[1].strip()
+            if not tok:
+                return text_result("файл есть, но BOT_TOKEN пустой")
+            info = json.loads(http_get(f"https://api.telegram.org/bot{tok}/getMe", timeout=20))
+            r = info.get("result", {})
+            return text_result(f"ok={info.get('ok')} username=@{r.get('username')} name={r.get('first_name')}")
+        except FileNotFoundError:
+            return text_result("файла с токеном нет")
+        except Exception as e:
+            return text_result("ошибка проверки: " + type(e).__name__ + " " + str(e).replace(tok if 'tok' in dir() and tok else 'x', '***')[:200])
     if first.get("frames"):  # [{"frames": video_url, "times": [0.5, 1, 1.5]}]
         jid = start_job("frames", do_frames, a["post"], first["frames"], first.get("times", [0.5, 1.5, 3]))
         return text_result(f"job_id: {jid} — кадры ~20 с")
