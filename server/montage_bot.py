@@ -156,8 +156,23 @@ def menu_text():
             "(например, <b>СКИЛЛЫ</b>) — и я сразу пришлю материал.")
 
 
+def _remember_chat(ch):
+    if ch and ch.get("type") == "channel":
+        c = _cfg()
+        chans = c.get("channels", {})
+        chans[str(ch["id"])] = ch.get("title")
+        c["channels"] = chans
+        _save_cfg(c)
+
+
 def handle(tok, con, upd):
     now = int(time.time())
+    if "channel_post" in upd:
+        _remember_chat(upd["channel_post"].get("chat"))
+        return
+    if "my_chat_member" in upd:
+        _remember_chat(upd["my_chat_member"].get("chat"))
+        return
     if "callback_query" in upd:
         q = upd["callback_query"]
         uid, data = q["from"]["id"], q.get("data", "")
@@ -173,7 +188,11 @@ def handle(tok, con, upd):
             send(tok, uid, "Записал тебя 🙌 Бесплатный урок по автомонтажу выйдет совсем скоро — пришлю сюда первым.")
         return
     m = upd.get("message")
-    if not m or "text" not in m:
+    if not m:
+        return
+    if m.get("forward_from_chat"):
+        _remember_chat(m["forward_from_chat"])
+    if "text" not in m:
         return
     uid, txt = m["from"]["id"], m["text"].strip()
     u = m["from"]
@@ -228,7 +247,7 @@ def loop(log):
     off = 0
     while True:
         try:
-            r = api(tok, "getUpdates", offset=off, timeout=50, allowed_updates=["message", "callback_query"])
+            r = api(tok, "getUpdates", offset=off, timeout=50, allowed_updates=["message", "callback_query", "channel_post", "my_chat_member"])
             for upd in r.get("result", []):
                 off = upd["update_id"] + 1
                 try:
@@ -257,6 +276,7 @@ def status():
     c = _cfg()
     out["admin_set"] = bool(c.get("admin_id"))
     out["lesson_url"] = c.get("lesson_url")
+    out["channels"] = c.get("channels", {})
     return out
 
 
@@ -267,3 +287,63 @@ def set_cfg(**kw):
             c[k] = v
     _save_cfg(c)
     return {k: c.get(k) for k in ("lesson_url", "mini_url", "course_url")}
+
+
+def _multipart(fields, files):
+    bnd = "----bot" + str(int(time.time() * 1000))
+    body = b""
+    for k, v in fields.items():
+        body += f"--{bnd}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n".encode()
+    for k, (name, data, ctype) in files.items():
+        body += (f"--{bnd}\r\nContent-Disposition: form-data; name=\"{k}\"; filename=\"{name}\"\r\n"
+                 f"Content-Type: {ctype}\r\n\r\n").encode() + data + b"\r\n"
+    return body + f"--{bnd}--\r\n".encode(), "multipart/form-data; boundary=" + bnd
+
+
+def api_file(tok, method, fields, files):
+    body, ct = _multipart(fields, files)
+    req = urllib.request.Request(f"https://api.telegram.org/bot{tok}/{method}", data=body, headers={"Content-Type": ct})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        return json.loads(r.read().decode())
+
+
+def admin(action, get_bytes):
+    """action dict: {"op": "describe", "description":..., "short":...}
+    {"op": "channel_photo", "url":...} {"op": "channel_desc", "text":...}
+    {"op": "post", "html":..., "pin": bool, "photo_url": optional}  (channel = only known channel)"""
+    tok = _token()
+    c = _cfg()
+    chans = list(c.get("channels", {}).keys())
+    op = action.get("op")
+    if op == "describe":
+        out = {}
+        if action.get("description"):
+            out["d"] = api(tok, "setMyDescription", description=action["description"])["ok"]
+        if action.get("short"):
+            out["s"] = api(tok, "setMyShortDescription", short_description=action["short"])["ok"]
+        if action.get("name"):
+            out["n"] = api(tok, "setMyName", name=action["name"])["ok"]
+        return out
+    if not chans:
+        return {"error": "канал неизвестен: опубликуй любое сообщение в канале (бот должен быть админом)"}
+    ch = action.get("chat_id") or chans[0]
+    if op == "channel_photo":
+        data = get_bytes(action["url"])
+        return api_file(tok, "setChatPhoto", {"chat_id": ch}, {"photo": ("p.png", data, "image/png")})
+    if op == "channel_desc":
+        return api(tok, "setChatDescription", chat_id=ch, description=action["text"])
+    if op == "post":
+        if action.get("photo_url"):
+            data = get_bytes(action["photo_url"])
+            r = api_file(tok, "sendPhoto", {"chat_id": ch, "caption": action["html"], "parse_mode": "HTML"},
+                         {"photo": ("p.png", data, "image/png")})
+        else:
+            r = api(tok, "sendMessage", chat_id=ch, text=action["html"], parse_mode="HTML",
+                    disable_web_page_preview=True)
+        mid = r.get("result", {}).get("message_id")
+        if action.get("pin") and mid:
+            api(tok, "pinChatMessage", chat_id=ch, message_id=mid, disable_notification=True)
+        return {"ok": r.get("ok"), "message_id": mid}
+    if op == "delete":
+        return api(tok, "deleteMessage", chat_id=ch, message_id=int(action["message_id"]))
+    return {"error": "unknown op"}

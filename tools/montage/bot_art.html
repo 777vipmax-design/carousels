@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;color:#fff;background:#0a0b0f;overflow:hidden}
+.c{position:absolute;inset:0;background:radial-gradient(70% 80% at 30% 20%,#FF7A4555,transparent 70%),radial-gradient(60% 70% at 90% 100%,#B388FF33,transparent 70%),#0a0b0f}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:40px 40px}
+.play{display:flex;align-items:center;justify-content:center;border-radius:28%;background:linear-gradient(145deg,#FF7A45,#e2603a);box-shadow:0 20px 60px #FF7A4566}
+.tri{width:0;height:0;border-style:solid;border-color:transparent transparent transparent #fff}
+.t{font-weight:900;line-height:.95;letter-spacing:-1px}.o{color:#FF7A45}
+.pill{display:inline-block;font-weight:800;border-radius:40px;padding:8px 18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);margin:0 8px 8px 0}
+</style></head><body><div class="c"></div><div class="grid"></div><div id="r"></div>
+<script>
+const k=new URLSearchParams(location.search).get('k');const R=document.getElementById('r');
+if(k=='avatar'){R.innerHTML=`<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px">
+<div class="play" style="width:220px;height:220px"><div class="tri" style="border-width:54px 0 54px 88px;margin-left:22px"></div></div>
+<div class="t" style="font-size:56px;text-align:center">АВТО<span class="o">МОНТАЖ</span></div></div>`}
+if(k=='desc'){R.innerHTML=`<div style="position:absolute;left:40px;top:40px;right:40px">
+<div class="t" style="font-size:42px">Подарки из рилсов<br><span class="o">+ автомонтаж с Claude</span></div>
+<div style="margin-top:22px;font-size:17px;max-width:440px">${['🎁 материалы по кодовым словам','🎬 ролики без монтажёра','⚡ голос · анимации · субтитры'].map(x=>`<span class="pill">${x}</span>`).join('')}</div></div>
+<div class="play" style="position:absolute;right:40px;bottom:36px;width:96px;height:96px"><div class="tri" style="border-width:24px 0 24px 38px;margin-left:8px"></div></div>`}
+if(k=='cover'){R.innerHTML=`<div style="position:absolute;left:80px;top:90px;right:80px">
+<div style="font-size:30px;font-weight:800;color:#FF7A45;letter-spacing:4px">ЗАКРЫТЫЙ КУРС</div>
+<div class="t" style="font-size:118px;margin-top:20px">Автомонтаж<br>с <span class="o">Claude</span></div>
+<div style="margin-top:44px;font-size:30px;max-width:820px">${['сценарий','голос','анимации','субтитры','звуки','публикация'].map(x=>`<span class="pill">${x}</span>`).join('')}</div></div>
+<div class="play" style="position:absolute;right:90px;bottom:90px;width:190px;height:190px"><div class="tri" style="border-width:46px 0 46px 74px;margin-left:16px"></div></div>`}
+</script></body></html>

@@ -1073,6 +1073,9 @@ def tool_story(a):
         import montage_bot
         if first.get("set"):
             montage_bot.set_cfg(**first["set"])
+        if first.get("admin"):
+            return text_result(json.dumps(montage_bot.admin(first["admin"], lambda u: http_get(u, timeout=120)),
+                                          ensure_ascii=False))
         return text_result(json.dumps(montage_bot.status(), ensure_ascii=False))
     if first.get("botcheck"):  # [{"botcheck": "/opt/montage-bot/.env"}] — is a bot token there and valid? never returns it
         pth = first["botcheck"] if str(first["botcheck"]).startswith("/opt/") else "/opt/montage-bot/.env"
