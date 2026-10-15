@@ -200,6 +200,9 @@ GEMINI_PROFILES = {
     "loud": ("Тот же мужской голос, но на эмоциях: громко, напористо, почти кричит на ключевых словах, возмущение и азарт",
              "Эмоциональный монолог для вирусного ролика: человек возмущён и взбудоражен, резкие акценты, "
              "короткие паузы перед цифрами, на главных словах повышает голос. Чистое русское произношение."),
+    "lyuba": ("Громкий, хрипловатый, напористый женский голос тётки лет пятидесяти, бывалой и острой на язык, с азартом и сарказмом",
+              "Тётя Люба — домашняя гадалка с советской кухни: говорит громко, эмоционально, по-базарному смешно, "
+              "резко повышает голос на ответе, делает театральные паузы, ироничные интонации. Чистое русское произношение."),
     "rough": ("Низкий, плотный, хриплый мужской голос, энергичный и напористый",
               "Жёсткий мотивирующий монолог: напор, хрипотца, короткие рубленые фразы, чистое русское произношение."),
 }
@@ -618,6 +621,61 @@ def do_remix(post, music_url, vol, src_name, out_name):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def _sfx(kind, path):
+    """Synthesised sound effects: slam (palm hits a table), riffle (card shuffle), whoosh."""
+    if kind == "slam":
+        fc = ("sine=f=55:d=0.45,volume=1.6,afade=t=out:st=0.02:d=0.42[a];"
+              "anoisesrc=d=0.25:c=brown:a=0.9,lowpass=f=900,afade=t=out:st=0.01:d=0.22,volume=1.4[b];"
+              "anoisesrc=d=0.08:c=white:a=0.5,highpass=f=1500,afade=t=out:st=0.0:d=0.08[c];"
+              "[a][b][c]amix=inputs=3:normalize=0,alimiter=limit=0.97")
+    elif kind == "riffle":
+        fc = ("anoisesrc=d=0.9:c=white:a=0.35,highpass=f=1800,lowpass=f=7000,"
+              "volume='0.4+0.6*abs(sin(2*PI*28*t))':eval=frame,afade=t=in:d=0.05,afade=t=out:st=0.7:d=0.2")
+    else:
+        fc = "anoisesrc=d=0.45:c=pink:a=0.6,highpass=f=400,lowpass=f=5000,afade=t=in:d=0.18,afade=t=out:st=0.2:d=0.25"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-filter_complex", fc, "-ar", "44100", "-ac", "1", path],
+                   check=True, capture_output=True)
+
+
+def do_audio_build(post, pieces, voice, speed, out_name):
+    """Build one voice track from pieces: {"say": text} (TTS), {"silence": sec}, {"sfx": "slam"|"riffle"|"whoosh"}.
+    Returns the track url and a timeline of every piece (start/end in seconds)."""
+    post, d = post_dir(post)
+    work = tempfile.mkdtemp(prefix="ab-")
+    try:
+        files, timeline, t = [], [], 0.0
+        for k, pc in enumerate(pieces):
+            raw = os.path.join(work, f"p{k:02d}_raw.mp3")
+            if pc.get("say"):
+                tts(pc["say"], pc.get("voice", voice), float(pc.get("speed", speed)), raw)
+            elif pc.get("sfx"):
+                _sfx(pc["sfx"], raw)
+            else:
+                subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i",
+                                f"anullsrc=r=44100:cl=mono", "-t", f"{float(pc.get('silence', 0.3)):.3f}", raw],
+                               check=True, capture_output=True)
+            wav = os.path.join(work, f"p{k:02d}.wav")
+            vol = float(pc.get("vol", 1.0))
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", raw, "-af", f"volume={vol}", "-ar", "44100", "-ac", "1",
+                            wav], check=True, capture_output=True)
+            dur = probe_duration(wav)
+            files.append(wav)
+            timeline.append({"k": k, "kind": "say" if pc.get("say") else ("sfx" if pc.get("sfx") else "silence"),
+                             "start": round(t, 3), "end": round(t + dur, 3), "text": pc.get("say", pc.get("sfx", ""))})
+            t += dur
+        lst = os.path.join(work, "l.txt")
+        with open(lst, "w") as f:
+            for w in files:
+                f.write(f"file '{w}'\n")
+        out = os.path.join(d, out_name)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", lst,
+                        "-af", "loudnorm=I=-14:TP=-1:LRA=9", "-ar", "44100", "-ac", "2", "-b:a", "192k", out],
+                       check=True, capture_output=True)
+        return {"url": public_url(post, out_name), "seconds": round(t, 2), "timeline": timeline}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def do_crop(post, src_name, out_name, box, fade):
     """Re-frame a finished reel: crop box [x,y,w,h] in fractions of the frame, scale back to 1080x1920
     (used to cut away artefacts such as fake captions a video model drew near the bottom)."""
@@ -944,6 +1002,10 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("audio_build"):  # [{"audio_build": [pieces], "voice": "g31:Kore:Promo/Hype:lyuba", "speed": 1.05, "out": "voice.mp3"}]
+        jid = start_job("voice", do_audio_build, a["post"], first["audio_build"], first.get("voice", "g31:Kore::lyuba"),
+                        float(first.get("speed", 1.0)), first.get("out", "voice.mp3"))
+        return text_result(f"job_id: {jid} — сборка озвучки ~1–3 мин")
     if first.get("crop"):  # [{"crop": [x,y,w,h], "src_file": "reel.mp4", "out": "reel_crop.mp4", "fade": false}]
         jid = start_job("reel", do_crop, a["post"], first.get("src_file", "reel.mp4"), first.get("out", "reel_crop.mp4"),
                         first["crop"], bool(first.get("fade", False)))
