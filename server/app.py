@@ -1069,6 +1069,11 @@ def tool_story(a):
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
                         first.get("model", "small"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
+    if first.get("botstatus"):  # [{"botstatus": true, "set": {"lesson_url": ...}}]
+        import montage_bot
+        if first.get("set"):
+            montage_bot.set_cfg(**first["set"])
+        return text_result(json.dumps(montage_bot.status(), ensure_ascii=False))
     if first.get("botcheck"):  # [{"botcheck": "/opt/montage-bot/.env"}] — is a bot token there and valid? never returns it
         pth = first["botcheck"] if str(first["botcheck"]).startswith("/opt/") else "/opt/montage-bot/.env"
         try:
@@ -1332,4 +1337,9 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     os.makedirs(FILES_DIR, exist_ok=True)
     log("carousel-media", VERSION, "on port", PORT, "domain", DOMAIN)
+    try:
+        import montage_bot
+        montage_bot.start(log)
+    except Exception as e:
+        log("bot start failed", type(e).__name__)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
