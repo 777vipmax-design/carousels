@@ -192,6 +192,11 @@ def handle(tok, con, upd):
         return
     if m.get("forward_from_chat"):
         _remember_chat(m["forward_from_chat"])
+    fo = m.get("forward_origin") or {}
+    if fo.get("type") == "channel":
+        _remember_chat(fo.get("chat"))
+        send(tok, m["chat"]["id"], "Канал запомнил ✅")
+        return
     if "text" not in m:
         return
     uid, txt = m["from"]["id"], m["text"].strip()
