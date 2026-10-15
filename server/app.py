@@ -648,6 +648,19 @@ def _sfx(kind, path, dur=None):
         fc = (f"anoisesrc=d={d:.2f}:c=pink:a=0.8,bandpass=f=1400:w=1800,"
               "volume='0.15+1.6*pow(abs(sin(2*PI*3.2*t)),8)':eval=frame,"
               f"afade=t=in:d=0.05,afade=t=out:st={max(0, d - 0.2):.2f}:d=0.2")
+    elif kind == "click":
+        fc = ("anoisesrc=d=0.04:c=white:a=0.9,highpass=f=2500,afade=t=out:st=0:d=0.04[a];"
+              "sine=f=1800:d=0.03,volume=0.5,afade=t=out:st=0:d=0.03[b];[a][b]amix=inputs=2:normalize=0")
+    elif kind == "type":
+        d = float(dur or 1.5)
+        fc = (f"anoisesrc=d={d:.2f}:c=white:a=0.6,highpass=f=2200,lowpass=f=8000,"
+              "volume='pow(abs(sin(2*PI*7*t+sin(2*PI*1.3*t)*2)),24)*2.2':eval=frame,"
+              f"afade=t=out:st={max(0, d - 0.1):.2f}:d=0.1")
+    elif kind == "pop":
+        fc = "sine=f=900:d=0.12,volume='1.2*exp(-30*t)':eval=frame,asetrate=44100*1.0,afade=t=out:st=0.05:d=0.07"
+    elif kind == "ding":
+        fc = ("sine=f=1320:d=0.7,volume='0.8*exp(-5*t)':eval=frame[a];sine=f=1980:d=0.7,volume='0.4*exp(-6*t)':eval=frame[b];"
+              "[a][b]amix=inputs=2:normalize=0")
     elif kind == "slam":
         fc = ("sine=f=55:d=0.45,volume=1.6,afade=t=out:st=0.02:d=0.42[a];"
               "anoisesrc=d=0.25:c=brown:a=0.9,lowpass=f=900,afade=t=out:st=0.01:d=0.22,volume=1.4[b];"
