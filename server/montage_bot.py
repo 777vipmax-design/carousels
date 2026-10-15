@@ -28,10 +28,21 @@ GIFTS = {  # start payload / typed code word -> gift file
     "kod": "kod", "код": "kod",
     "sait": "sait", "сайт": "sait",
     "arena": "arena", "арена": "arena",
+    "limit": "limit", "лимит": "limit",
+    "dogovor": "dogovor", "договор": "dogovor",
+    "golos": "golos", "голос": "golos",
+    "tablica": "tablica", "таблица": "tablica",
+    "preza": "preza", "преза": "preza",
+    "proekt": "proekt", "проект": "proekt",
+    "podkluchi": "podkluchi", "подключи": "podkluchi",
+    "svodka": "svodka", "сводка": "svodka",
+    "novichok": "novichok", "новичок": "novichok",
+    "konkurent": "konkurent", "конкурент": "konkurent",
 }
 TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instagram на ИИ", "razbor": "REA",
           "poisk": "find-skills", "klienty": "Клиенты",
-          "montazh": "Автомонтаж", "kod": "Сайт без кода", "sait": "Живые сайты", "arena": "Команда из Claude"}
+          "montazh": "Автомонтаж", "kod": "Сайт без кода", "sait": "Живые сайты", "arena": "Команда из Claude",
+          "limit": "Лимит Claude", "dogovor": "Проверка договора", "golos": "Голосовые заметки", "tablica": "Чеки → таблица", "preza": "Презентации", "proekt": "Проекты Claude", "podkluchi": "Почта и календарь", "svodka": "Утренняя сводка", "novichok": "Шпаргалка новичка", "konkurent": "Цены конкурентов"}
 ROLES = [("blog", "📱 Блогер"), ("expert", "🎓 Эксперт"), ("biz", "💼 Бизнес"), ("try", "👀 Просто интересно")]
 CFG_FILE = os.path.join(DB_DIR, "config.json")  # {"admin_id":..., "lesson_url":..., "mini_url":..., "course_url":...}
 
