@@ -1,0 +1,40 @@
+// Claude ведёт Instagram (КЛОД)
+function phone(x,y,w,h){const p=el('div',null,{position:'absolute',left:x+'px',top:y+'px',width:w+'px',height:h+'px',borderRadius:'60px',background:'#0d0e13',border:'10px solid #2b2e3c',boxShadow:'0 40px 120px rgba(0,0,0,.7)',overflow:'hidden'});R.append(p);return p}
+S.push(function(t,d){base('#FF5FD2','#FF5FD240');
+ bigt(t,.05,'МОЙ INSTAGRAM',170,104);
+ const b=el('div','big',{top:'300px',fontSize:'96px',color:'#FF5FD2'},'ВЕДЁТ ИИ');const q=back((t-.4)/.4);b.style.transform=`scale(${cl(q,0,1.2)})`;b.style.opacity=cl((t-.4)/.2);R.append(b);
+ const p=phone(250,470,580,800);const k=pr(t,.3,.5);p.style.transform=`translateY(${(1-k)*200}px) rotate(${(1-k)*8}deg)`;
+ p.innerHTML=`<div style="display:flex;align-items:center;gap:20px;padding:40px 30px 20px"><div style="width:110px;height:110px;border-radius:50%;background:conic-gradient(#FF5FD2,#FFC24D,#FF7A45,#FF5FD2);padding:5px"><div style="width:100%;height:100%;border-radius:50%;background:#2a1d17;display:flex;align-items:center;justify-content:center;font-size:50px;color:#FF7A45">✳</div></div><div style="display:flex;gap:24px;font-weight:900;font-size:30px">${['посты','подписчики','подписки'].map((x,i)=>`<div style="text-align:center">${['48','—','—'][i]}<div style="font-size:16px;color:#9aa0b4;font-weight:600">${x}</div></div>`).join('')}</div></div>`;
+ const g=el('div',null,{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'4px',padding:'10px 4px'});p.append(g);
+ const cols=['#FF5FD2','#4FD1FF','#FFC24D','#34C759','#FF7A45','#B388FF','#4FD1FF','#FF5FD2','#FFC24D'];
+ cols.forEach((c,i)=>{const s=.8+i*.12;g.append(el('div',null,{height:'180px',background:`linear-gradient(135deg,${c},#1b1c26)`,opacity:pr(t,s,.25),transform:`scale(${.7+.3*pr(t,s,.3)})`}))});
+});
+S.push(function(t,d){base('#FFC24D');hdr(t,'08:00','КОНТЕНТ-ПЛАН');const w=win(t,'Неделя под мою аудиторию',.15);
+ const r=[['Пн','Рилс','5 скиллов Claude'],['Вт','Карусель','10 запросов для работы'],['Ср','Рилс','ИИ-офис из 5 агентов'],['Чт','Сторис','опрос: что разобрать'],['Пт','Рилс','разбор любой программы'],['Сб','Пост','мой рабочий день'],['Вс','Рилс','ответы на вопросы']];
+ r.forEach((x,i)=>{const s=.35+i*.18;if(t<s)return;const q=pr(t,s,.3);w.append(el('div',null,{position:'absolute',left:'36px',right:'36px',top:(105+i*104)+'px',height:'88px',borderRadius:'16px',background:'#1f2230',display:'flex',alignItems:'center',padding:'0 24px',gap:'20px',opacity:q,transform:`translateX(${(1-q)*100}px)`},`<div style="font-weight:900;font-size:28px;width:50px;color:#9aa0b4">${x[0]}</div><div style="font-size:22px;font-weight:900;padding:5px 14px;border-radius:10px;background:#FFC24D;color:#0a0b0f">${x[1]}</div><div style="font-size:28px;font-weight:700">${x[2]}</div>`))});
+});
+S.push(function(t,d){base('#FF5FD2');hdr(t,'','ПОДПИСИ И ХУКИ');const w=win(t,'Подпись к рилсу',.15);
+ const lines=[['ХУК','#FF5FD2','5 бесплатных скиллов — и Claude превращается в команду'],['СПИСОК','#4FD1FF','01 Дизайнер · 02 Презентации · 03 Аналитик'],['ПРИЗЫВ','#FFC24D','📌 Сохрани, чтобы не потерять'],['КОД','#34C759','💬 Напиши «СКИЛЛЫ» — пришлю всё']];
+ let st=.35;lines.forEach((x,i)=>{const s=st;st+=x[2].length/48+.15;if(t<s)return;w.append(el('div',null,{position:'absolute',left:'40px',right:'40px',top:(115+i*175)+'px'},`<div style="font-size:22px;font-weight:900;color:${x[1]};letter-spacing:2px">${x[0]}</div><div style="font-size:34px;font-weight:700;margin-top:8px;line-height:1.3">${typed(x[2],t,s,48)}</div>`))});
+});
+S.push(function(t,d){base('#4FD1FF');hdr(t,'','СОБИРАЕТ РОЛИКИ');const w=win(t,'монтаж',.15);
+ const tr=[['ГОЛОС','#4FD1FF'],['АНИМАЦИЯ','#FF5FD2'],['СУБТИТРЫ','#FFC24D'],['ЗВУКИ','#34C759']];
+ tr.forEach((x,i)=>{const s=.35+i*.25;const k=pr(t,s,1.2);const r=el('div',null,{position:'absolute',left:'36px',right:'36px',top:(130+i*120)+'px',height:'92px',borderRadius:'16px',background:'#1f2230'});
+  r.innerHTML=`<div style="position:absolute;left:20px;top:28px;font-size:24px;font-weight:900;color:#9aa0b4">${x[0]}</div>`+Array.from({length:6}).map((_,j)=>`<div style="position:absolute;top:14px;left:${200+j*110}px;width:${100*cl(k*6-j,0,1)}px;height:64px;border-radius:10px;background:${x[1]};opacity:.85"></div>`).join('');w.append(r)});
+ const ph=(t*240)%720;w.append(el('div',null,{position:'absolute',top:'110px',height:'500px',width:'4px',left:(236+ph)+'px',background:'#fff',opacity:t>.5?1:0}));
+ pill(t,d*.7,'ГОТОВЫЙ РОЛИК');
+});
+S.push(function(t,d){base('#34C759');hdr(t,'','ПЛАНИРОВЩИК');const w=win(t,'Публикации',.15);
+ const sl=[['Сегодня','13:00','Рилс · 5 скиллов'],['Сегодня','19:00','Карусель · запросы'],['Завтра','13:00','Рилс · ИИ-офис'],['Завтра','19:00','Сторис · опрос'],['Пт','13:00','Рилс · разбор']];
+ sl.forEach((x,i)=>{const s=.4+i*.3;if(t<s)return;const k=back((t-s)/.4);const ok=t>s+.45;
+  w.append(el('div',null,{position:'absolute',left:'36px',right:'36px',top:(110+i*130)+'px',height:'110px',borderRadius:'18px',background:'#1f2230',display:'flex',alignItems:'center',padding:'0 26px',gap:'22px',transform:`translateY(${(1-k)*-120}px)`,opacity:cl((t-s)/.15)},`<div style="font-size:24px;color:#9aa0b4;font-weight:700;width:120px">${x[0]}</div><div class="mono" style="font-size:34px;font-weight:700;color:#34C759">${x[1]}</div><div style="font-size:28px;font-weight:700">${x[2]}</div>${ok?'<div style="margin-left:auto;font-size:30px;color:#0a0b0f;background:#34C759;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-weight:900">✓</div>':''}`))});
+ pill(t,d*.75,'ВЫХОДИТ САМО');
+});
+S.push(function(t,d){base('#FF7A45');hdr(t,'21:00','СТАТИСТИКА');const w=win(t,'Что зашло за неделю',.15);
+ const v=[[38,'Рилс 1',1],[92,'Рилс 2',1],[22,'Пост',0],[71,'Рилс 3',1],[15,'Сторис',0]];
+ const ch=el('div',null,{position:'absolute',left:'40px',right:'40px',top:'120px',height:'420px',display:'flex',alignItems:'flex-end',gap:'26px'});w.append(ch);
+ v.forEach((x,i)=>{const h=x[0]*3.6*pr(t,.4+i*.12,.6);const c=el('div',null,{flex:'1',position:'relative',height:h+'px',borderRadius:'12px 12px 4px 4px',background:x[2]?'#34C759':'#FF3B30'});
+  if(t>1.4+i*.12)c.append(el('div',null,{position:'absolute',top:'-48px',left:'50%',transform:'translateX(-50%)',fontSize:'22px',fontWeight:'900',whiteSpace:'nowrap',color:x[2]?'#34C759':'#FF3B30'},x[2]?'ЗАШЛО':'НЕТ'));ch.append(c)});
+ const ins=d*.5;if(t>ins){const q=pr(t,ins,.4);w.append(el('div',null,{position:'absolute',left:'36px',right:'36px',top:'600px',borderRadius:'22px',background:'#2a1d17',border:'2px solid #FF7A45',padding:'24px 28px',fontSize:'32px',fontWeight:'700',lineHeight:'1.35',opacity:q},`<span style="color:#FF7A45;font-weight:900">ВЫВОД:</span> ${typed('рилсы с кодовым словом собирают больше комментариев — делаем больше таких',t,ins+.2,45)}`))}
+});
+S.push(function(t,d){cta(t,d,'КЛОД',['запросы для контент-плана','шаблон подписи с хуком','как всё запустить'],'#FF5FD2')});

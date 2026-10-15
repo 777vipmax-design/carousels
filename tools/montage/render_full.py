@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 FPS = 30
 tl, out = sys.argv[1], sys.argv[2]
 snaps = [float(x) for x in sys.argv[3].split(",")] if len(sys.argv) > 3 else None
-url = "file://" + os.path.abspath("full.html") + "?tl=" + tl
+url = "file://" + os.path.abspath("full.html") + "?tl=" + tl + "&s=" + os.environ.get("SC", "fl1")
 end = float(tl.split(",")[-1])
 tmp = tempfile.mkdtemp(prefix="full-")
 with sync_playwright() as p:

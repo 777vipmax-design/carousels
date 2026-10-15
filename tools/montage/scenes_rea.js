@@ -1,0 +1,44 @@
+// REA (РАЗБОР)
+S.push(function(t,d){base('#4FD1FF','#4FD1FF40');
+ bigt(t,.05,'РАЗБЕРЁТ',180,140);bigt(t,.3,'ЛЮБУЮ ПРОГРАММУ',340,80).style.color='#4FD1FF';
+ // app icon exploding into parts
+ const cx=540,cy=880;const parts=[[-1,-1,'#4FD1FF'],[1,-1,'#FF5FD2'],[-1,1,'#FFC24D'],[1,1,'#34C759'],[0,-1.4,'#FF7A45'],[0,1.4,'#B388FF'],[-1.4,0,'#4FD1FF'],[1.4,0,'#FF5FD2']];
+ const ex=pr(t,1.0,.8);
+ parts.forEach((p,i)=>{const s=110;const x=cx-s/2+p[0]*ex*260*(1+.1*Math.sin(t*2+i)),y=cy-s/2+p[1]*ex*260;
+  R.append(el('div',null,{position:'absolute',left:x+'px',top:y+'px',width:s+'px',height:s+'px',borderRadius:'24px',background:p[2],opacity:.9,transform:`rotate(${ex*(i*37%90-45)}deg)`,boxShadow:'0 20px 40px rgba(0,0,0,.5)'},`<div class="mono" style="font-size:22px;color:#0a0b0f;font-weight:900;padding:12px">${['{ }','fn()','0x1F','<ui>','api','db','.js','.so'][i]}</div>`))});
+ const ic=el('div',null,{position:'absolute',left:(cx-130)+'px',top:(cy-130)+'px',width:'260px',height:'260px',borderRadius:'60px',background:'linear-gradient(145deg,#1f3a4a,#121722)',border:'3px solid #4FD1FF',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'120px',transform:`scale(${back(t/.4)*(1-.15*ex)})`},'🔍');R.append(ic);
+});
+S.push(function(t,d){base('#4FD1FF');hdr(t,'','REA','github.com/morluto/rea');const w=win(t,'GitHub · Trending',.15);
+ const rows=[['#1','morluto / rea','#4FD1FF',1],['#2','…','#3a3d4c',0],['#3','…','#3a3d4c',0]];
+ rows.forEach((r,i)=>{const s=.4+i*.15;if(t<s)return;const q=pr(t,s,.3);w.append(el('div',null,{position:'absolute',left:'36px',right:'36px',top:(110+i*130)+'px',height:'110px',borderRadius:'20px',background:i?'#1a1c26':'#14303d',border:i?'none':'2px solid #4FD1FF',display:'flex',alignItems:'center',padding:'0 28px',gap:'26px',opacity:q},`<div style="font-size:44px;font-weight:900;color:${r[2]}">${r[0]}</div><div class="mono" style="font-size:34px;font-weight:700;color:${i?'#555':'#fff'}">${r[1]}</div>`))});
+ const n=Math.round(100000*pr(t,.8,1.6));w.append(el('div','big',{top:'520px',fontSize:'110px'},`⭐ ${n.toLocaleString('ru-RU')}+`));
+ if(t>1.6)['ОТКРЫТЫЙ КОД','MIT · БЕСПЛАТНО'].forEach((x,i)=>w.append(el('div',null,{position:'absolute',left:(80+i*420)+'px',top:'700px',fontSize:'30px',fontWeight:'900',padding:'12px 24px',borderRadius:'30px',background:'#4FD1FF',color:'#0a0b0f',transform:`scale(${back((t-1.6-i*.15)/.3)})`},x)));
+});
+S.push(function(t,d){base('#4FD1FF');hdr(t,'01','ДАЁШЬ ЧТО УГОДНО');
+ const it=[['📱','приложение'],['🌐','сайт'],['🤖','APK'],['📦','файл']];
+ it.forEach((x,i)=>{const s=.3+i*.2;if(t<s)return;const k=pr(t,s,.8);const x0=90+i*240,y0=420;const x1=420,y1=820;const fx=x0+(x1-x0)*cl((t-s-.6)/.6),fy=y0+(y1-y0)*cl((t-s-.6)/.6);
+  const e=el('div','chip',{left:fx+'px',top:fy+'px',width:'210px',height:'190px',fontSize:'30px',transform:`scale(${back((t-s)/.4)*(1-.6*cl((t-s-.6)/.6))})`,opacity:1-cl((t-s-1.0)/.3)},`<div style="font-size:70px">${x[0]}</div>${x[1]}`);R.append(e)});
+ const box=el('div','chip',{left:'340px',top:'760px',width:'400px',height:'260px',fontSize:'50px',borderColor:'#4FD1FF',background:'#14303d',transform:`scale(${back((t-.2)/.4)})`},'<div style="font-size:30px;color:#4FD1FF">ИИ-АГЕНТ</div>REA');R.append(box);
+ const qs=d*.5;if(t>qs){R.append(el('div','bub',{left:'90px',top:'1080px',background:'#4FD1FF',color:'#111',opacity:pr(t,qs,.3)},typed('Как работает эта функция?',t,qs,30)))}
+});
+S.push(function(t,d){base('#4FD1FF');hdr(t,'02','НАХОДИТ КОД');const w=win(t,'анализ · доказательства',.15);
+ const code=['func checkout(cart) {','  total = sum(cart.items)','  if (promo) total *= 0.9','  return pay(total)','}','','func pay(sum) {','  api.post("/pay", sum)','}'];
+ code.forEach((l,i)=>{const s=.3+i*.08;const hl=(i==2&&t>1.5)||(i==7&&t>2.2);w.append(el('div','mono',{position:'absolute',left:'30px',right:'30px',top:(110+i*58)+'px',height:'54px',fontSize:'30px',padding:'8px 14px',whiteSpace:'pre',borderRadius:'10px',background:hl?'#4FD1FF33':'transparent',color:'#cfd6e4',opacity:pr(t,s,.2)},`<span style="color:#555;margin-right:20px">${String(i+1).padStart(2,' ')}</span>${l}`))});
+ [[1.5,2,'скидка 10% считается здесь'],[2.2,7,'оплата уходит сюда']].forEach(x=>{if(t<x[0])return;w.append(el('div',null,{position:'absolute',right:'40px',top:(110+x[1]*58+60)+'px',fontSize:'24px',fontWeight:'900',background:'#4FD1FF',color:'#0a0b0f',padding:'6px 16px',borderRadius:'12px',transform:`scale(${back((t-x[0])/.3)})`},'← '+x[2]))});
+ const sx=60+((t*300)%800);w.append(el('div',null,{position:'absolute',left:sx+'px',top:'100px',width:'140px',height:'560px',background:'linear-gradient(90deg,transparent,rgba(79,209,255,.18),transparent)'}));
+});
+S.push(function(t,d){base('#34C759');hdr(t,'03','ПОВТОРЯЕТ');const w=win(t,'твой проект',.15);
+ const bl=[['Корзина',.4],['Промокод −10%',.8],['Кнопка «Оплатить»',1.2],['Чек на почту',1.6]];
+ bl.forEach((x,i)=>{if(t<x[1])return;const k=back((t-x[1])/.4);w.append(el('div',null,{position:'absolute',left:'60px',right:'60px',top:(130+i*140)+'px',height:'110px',borderRadius:'20px',background:'#13261b',border:'2px solid #34C759',display:'flex',alignItems:'center',padding:'0 30px',fontSize:'34px',fontWeight:'800',transform:`scale(${cl(k,0,1.2)})`},`<span style="color:#34C759;margin-right:20px">+</span>${x[0]}`))});
+ pill(t,d*.7,'ФУНКЦИЯ ГОТОВА','#34C759');
+});
+S.push(function(t,d){base('#4FD1FF');hdr(t,'','РАБОТАЕТ С');
+ const ag=['Claude Code','Cursor','Codex','Gemini CLI'];
+ ag.forEach((x,i)=>{const s=.3+i*.2;if(t<s)return;R.append(el('div','chip',{left:(110+(i%2)*450)+'px',top:(420+Math.floor(i/2)*260)+'px',width:'410px',height:'210px',fontSize:'40px',borderColor:i==0?'#FF7A45':'#4FD1FF',transform:`scale(${back((t-s)/.4)})`},x))});
+ pill(t,1.4,'БЕСПЛАТНО','#34C759',null,1000);pill(t,1.7,'ОТКРЫТЫЙ КОД','#4FD1FF',null,1120);
+});
+S.push(function(t,d){base('#FFC24D');hdr(t,'⚠','ПО-ЧЕСТНОМУ');
+ const r=[['✓','свои программы и сайты','#34C759'],['✓','с разрешения владельца','#34C759'],['✓','учёба и совместимость','#34C759'],['✕','взлом чужих защит','#FF3B30']];
+ r.forEach((x,i)=>{const s=.3+i*.3;if(t<s)return;const q=pr(t,s,.3);R.append(el('div',null,{position:'absolute',left:'90px',right:'90px',top:(420+i*170)+'px',height:'140px',borderRadius:'26px',background:'#1c1e2a',border:'2px solid '+x[2],display:'flex',alignItems:'center',gap:'30px',padding:'0 36px',fontSize:'40px',fontWeight:'800',opacity:q,transform:`translateX(${(1-q)*100}px)`},`<span style="font-size:60px;color:${x[2]};font-weight:900">${x[0]}</span>${x[1]}`))});
+});
+S.push(function(t,d){cta(t,d,'РАЗБОР',['ссылка на REA','установка по шагам','5 полезных запросов'],'#4FD1FF')});
