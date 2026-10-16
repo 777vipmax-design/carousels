@@ -635,6 +635,40 @@ def do_remix(post, music_url, vol, src_name, out_name, mute=None, sfx=None):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_batch_reels(spec_url):
+    """[{post, video, voice, end, music, vol, sfx}] -> compose (video + voice) then remix (music + sfx), one by one."""
+    items = json.loads(http_get(spec_url, timeout=60).decode())
+    out = []
+    for it in items:
+        try:
+            do_compose(it["post"], {"music": it["voice"], "start": 0, "end": float(it["end"]), "pop": False,
+                                    "parts": [{"t0": 0, "t1": float(it["end"]), "video": it["video"]}]})
+            r = do_remix(it["post"], it["music"], float(it.get("vol", 0.22)), "reel.mp4", "reel_music.mp4",
+                         None, it.get("sfx"))
+            out.append({"post": it["post"], "url": r["url"], "seconds": r["seconds"]})
+        except Exception as e:  # noqa: BLE001
+            out.append({"post": it.get("post"), "error": str(e)[:200]})
+    return out
+
+
+def do_audio_batch(spec_url):
+    """[{post, pieces, voice, speed, out}] -> audio_build for each; returns compact timelines (say pieces only)."""
+    items = json.loads(http_get(spec_url, timeout=60).decode())
+    out = []
+    for it in items:
+        for attempt in range(3):
+            try:
+                r = do_audio_build(it["post"], it["pieces"], it.get("voice", "g31:Gacrux:Promo/Hype:loud"),
+                                   float(it.get("speed", 1.15)), it.get("out", "voice.mp3"))
+                out.append({"post": it["post"], "seconds": r["seconds"],
+                            "say": [[x["start"], x["end"]] for x in r["timeline"] if x["kind"] == "say"]})
+                break
+            except Exception as e:  # noqa: BLE001
+                if attempt == 2:
+                    out.append({"post": it["post"], "error": str(e)[:200]})
+    return out
+
+
 def _sfx(kind, path, dur=None):
     """Synthesised sound effects: slam (palm hits a table), riffle (card shuffle), shuffle (long riffle,
     dur), shake (8-ball rattle, dur), whoosh."""
@@ -1116,6 +1150,12 @@ def tool_story(a):
         jid = start_job("cover", do_brand_cover, a["post"], first["brand_cover"], first.get("overlay"),
                         first.get("out", "cover.png"), first.get("reel"), first.get("reel_out", first.get("reel")))
         return text_result(f"job_id: {jid} — обложка ~10 с (+ первый кадр рилса ~2 мин)")
+    if first.get("batch_reels"):  # [{"batch_reels": spec_json_url}]
+        jid = start_job("reel", do_batch_reels, first["batch_reels"])
+        return text_result(f"job_id: {jid} — пакет рилсов ~1–2 мин на ролик")
+    if first.get("audio_batch"):  # [{"audio_batch": spec_json_url}]
+        jid = start_job("voice", do_audio_batch, first["audio_batch"])
+        return text_result(f"job_id: {jid} — пакет озвучки ~1 мин на ролик")
     if first.get("remix"):  # scenes=[{"remix":true,"music":url,"vol":0.25}] — overlay music on existing reel.mp4
         jid = start_job("remix", do_remix, a["post"], first["music"], float(first.get("vol", 0.25)),
                         first.get("src_file", "reel.mp4"), first.get("out", "reel_music.mp4"),
