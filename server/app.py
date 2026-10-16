@@ -660,9 +660,12 @@ def do_batch_reels(spec_url):
     out = []
     for it in items:
         try:
-            do_compose(it["post"], {"music": it["voice"], "start": 0, "end": float(it["end"]), "pop": False,
-                                    "parts": [{"t0": 0, "t1": float(it["end"]), "video": it["video"]}]})
-            r = do_remix(it["post"], it["music"], float(it.get("vol", 0.22)), "reel.mp4", "reel_music.mp4",
+            if it.get("mode") == "mux":  # any aspect: silent video + voice already in the post folder
+                do_mux(it["post"], it["video"], it.get("voice_file", "voice.mp3"), "reel.mp4")
+            else:
+                do_compose(it["post"], {"music": it["voice"], "start": 0, "end": float(it["end"]), "pop": False,
+                                        "parts": [{"t0": 0, "t1": float(it["end"]), "video": it["video"]}]})
+            r = do_remix(it["post"], it["music"], float(it.get("vol", 0.22)), "reel.mp4", it.get("out", "reel_music.mp4"),
                          None, it.get("sfx"))
             out.append({"post": it["post"], "url": r["url"], "seconds": r["seconds"]})
         except Exception as e:  # noqa: BLE001
