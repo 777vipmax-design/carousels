@@ -38,11 +38,22 @@ GIFTS = {  # start payload / typed code word -> gift file
     "svodka": "svodka", "сводка": "svodka",
     "novichok": "novichok", "новичок": "novichok",
     "konkurent": "konkurent", "конкурент": "konkurent",
+    "ustanovka": "ustanovka", "установка": "ustanovka",
+    "kak": "kak", "как": "kak",
+    "plaginy": "plaginy", "плагины": "plaginy", "плагин": "plaginy",
+    "dyry": "dyry", "дыры": "dyry",
+    "pravila": "pravila", "правила": "pravila",
+    "plan": "plan", "план": "plan",
+    "otkat": "otkat", "откат": "otkat",
+    "skill": "skill", "скилл": "skill", "скил": "skill",
+    "vybor": "vybor", "выбор": "vybor",
+    "mcp": "mcp", "мсп": "mcp", "эмсипи": "mcp", "эм-си-пи": "mcp",
 }
 TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instagram на ИИ", "razbor": "REA",
           "poisk": "find-skills", "klienty": "Клиенты",
           "montazh": "Автомонтаж", "kod": "Сайт без кода", "sait": "Живые сайты", "arena": "Команда из Claude",
-          "limit": "Лимит Claude", "dogovor": "Проверка договора", "golos": "Голосовые заметки", "tablica": "Чеки → таблица", "preza": "Презентации", "proekt": "Проекты Claude", "podkluchi": "Почта и календарь", "svodka": "Утренняя сводка", "novichok": "Шпаргалка новичка", "konkurent": "Цены конкурентов"}
+          "limit": "Лимит Claude", "dogovor": "Проверка договора", "golos": "Голосовые заметки", "tablica": "Чеки → таблица", "preza": "Презентации", "proekt": "Проекты Claude", "podkluchi": "Почта и календарь", "svodka": "Утренняя сводка", "novichok": "Шпаргалка новичка", "konkurent": "Цены конкурентов",
+          "ustanovka": "Установка скилла", "kak": "Как собран ролик", "plaginy": "Плагины", "dyry": "Безопасность сайта", "pravila": "CLAUDE.md", "plan": "Режим плана", "otkat": "Откат", "skill": "Первый скилл", "vybor": "Сравнение", "mcp": "Подключения MCP"}
 ROLES = [("blog", "📱 Блогер"), ("expert", "🎓 Эксперт"), ("biz", "💼 Бизнес"), ("try", "👀 Просто интересно")]
 CFG_FILE = os.path.join(DB_DIR, "config.json")  # {"admin_id":..., "lesson_url":..., "mini_url":..., "course_url":...}
 
