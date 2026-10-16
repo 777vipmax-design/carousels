@@ -1222,9 +1222,9 @@ def tool_job(a):
     content = []
     res = j.get("result") or {}
     if j["state"] == "done":
-        if j["kind"] == "cover" and res.get("file"):
+        if j["kind"] == "cover" and isinstance(res, dict) and res.get("file"):
             content.append({"type": "image", "mimeType": "image/jpeg", "data": preview_jpeg(res["file"])})
-        if j["kind"] in ("reel", "frames"):
+        if j["kind"] in ("reel", "frames") and isinstance(res, dict):
             for p in res.get("previews", []):
                 content.append({"type": "image", "mimeType": "image/jpeg", "data": preview_jpeg(p, 600)})
     info = {k: v for k, v in j.items() if k != "result"}
