@@ -1,0 +1,38 @@
+name: Fetch media from server
+
+on:
+  push:
+    paths:
+      - "media/fetch.json"
+  workflow_dispatch:
+
+concurrency:
+  group: fetch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download files listed in media/fetch.json
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          for it in json.load(open("media/fetch.json")):
+              os.makedirs(os.path.dirname(it["path"]), exist_ok=True)
+              urllib.request.urlretrieve(it["url"], it["path"])
+              print(it["path"], os.path.getsize(it["path"]))
+          PY
+      - name: Commit
+        run: |
+          git config user.name "fetch-bot"
+          git config user.email "fetch-bot@users.noreply.github.com"
+          git add media
+          git diff --cached --quiet && exit 0
+          git commit -m "Fetch media from server"
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
