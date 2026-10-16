@@ -635,6 +635,25 @@ def do_remix(post, music_url, vol, src_name, out_name, mute=None, sfx=None):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def do_mux(post, video_url, voice_name, out_name):
+    """Silent video (any aspect) + voice file from the post folder -> out_name, audio padded/cut to video length."""
+    post, d = post_dir(post)
+    work = tempfile.mkdtemp(prefix="mux-")
+    try:
+        vp = os.path.join(work, "v.mp4")
+        with open(vp, "wb") as f:
+            f.write(http_get(video_url, timeout=300))
+        dur = probe_duration(vp)
+        out = os.path.join(d, out_name)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", vp, "-i", os.path.join(d, voice_name),
+                        "-filter_complex", f"[1:a]apad,atrim=0:{dur:.3f}[a]", "-map", "0:v", "-map", "[a]",
+                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out],
+                       check=True, capture_output=True)
+        return {"url": public_url(post, out_name), "seconds": round(dur, 2)}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def do_batch_reels(spec_url):
     """[{post, video, voice, end, music, vol, sfx}] -> compose (video + voice) then remix (music + sfx), one by one."""
     items = json.loads(http_get(spec_url, timeout=60).decode())
@@ -1150,6 +1169,9 @@ def tool_story(a):
         jid = start_job("cover", do_brand_cover, a["post"], first["brand_cover"], first.get("overlay"),
                         first.get("out", "cover.png"), first.get("reel"), first.get("reel_out", first.get("reel")))
         return text_result(f"job_id: {jid} — обложка ~10 с (+ первый кадр рилса ~2 мин)")
+    if first.get("mux"):  # [{"mux": video_url, "voice": "voice.mp3", "out": "reel.mp4"}]
+        jid = start_job("reel", do_mux, a["post"], first["mux"], first.get("voice", "voice.mp3"), first.get("out", "reel.mp4"))
+        return text_result(f"job_id: {jid} — склейка ~30 с")
     if first.get("batch_reels"):  # [{"batch_reels": spec_json_url}]
         jid = start_job("reel", do_batch_reels, first["batch_reels"])
         return text_result(f"job_id: {jid} — пакет рилсов ~1–2 мин на ролик")
