@@ -78,6 +78,7 @@ GIFTS = {  # start payload / typed code word -> gift file
     "vozrazheniya": "vozrazheniya", "возражения": "vozrazheniya",
     "dashboard": "dashboard", "дашборд": "dashboard",
     "skolko": "skolko", "сколько": "skolko",
+    "konveyer": "konveyer", "конвейер": "konveyer",
 }
 TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instagram на ИИ", "razbor": "REA",
           "poisk": "find-skills", "klienty": "Клиенты",
@@ -86,7 +87,7 @@ TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instag
           "ustanovka": "Установка скилла", "kak": "Как собран ролик", "plaginy": "Плагины", "dyry": "Безопасность сайта", "pravila": "CLAUDE.md", "plan": "Режим плана", "otkat": "Откат", "skill": "Первый скилл", "vybor": "Сравнение", "mcp": "Подключения MCP",
           "tarif": "Тарифы", "pamyat": "Память", "obzor": "Карта возможностей", "schet": "Защита от счёта", "zakon": "Сайт и закон", "kritik": "Разбор идеи", "dizain": "Дизайн по референсу", "animaciya": "Анимации", "kniga": "Разбор книги", "magazin": "Каталог из фото",
           "otchet": "Разбор рекламы", "audit": "SEO-проверка", "otzyvy": "Отзывы", "kp": "КП", "vakansiya": "Найм", "idei": "Контент-план", "scenariy": "Сценарий рилса", "kalkulyator": "Калькулятор", "bot": "Бот заявок", "formula": "Формулы",
-          "issleduy": "Исследование", "kviz": "Квиз", "skrin": "Скриншоты", "terminal": "Claude Code без терминала", "agent": "Задачи для агента", "doverie": "Проверка ответов", "posty": "Посты в стиле", "vozrazheniya": "Возражения", "dashboard": "Дашборд", "skolko": "Мой процесс"}
+          "issleduy": "Исследование", "kviz": "Квиз", "skrin": "Скриншоты", "terminal": "Claude Code без терминала", "agent": "Задачи для агента", "doverie": "Проверка ответов", "posty": "Посты в стиле", "vozrazheniya": "Возражения", "dashboard": "Дашборд", "skolko": "Мой процесс", "konveyer": "Конвейер сайтов"}
 ROLES = [("blog", "📱 Блогер"), ("expert", "🎓 Эксперт"), ("biz", "💼 Бизнес"), ("try", "👀 Просто интересно")]
 CFG_FILE = os.path.join(DB_DIR, "config.json")  # {"admin_id":..., "lesson_url":..., "mini_url":..., "course_url":...}
 
