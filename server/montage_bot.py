@@ -89,6 +89,33 @@ TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instag
           "otchet": "Разбор рекламы", "audit": "SEO-проверка", "otzyvy": "Отзывы", "kp": "КП", "vakansiya": "Найм", "idei": "Контент-план", "scenariy": "Сценарий рилса", "kalkulyator": "Калькулятор", "bot": "Бот заявок", "formula": "Формулы",
           "issleduy": "Исследование", "kviz": "Квиз", "skrin": "Скриншоты", "terminal": "Claude Code без терминала", "agent": "Задачи для агента", "doverie": "Проверка ответов", "posty": "Посты в стиле", "vozrazheniya": "Возражения", "dashboard": "Дашборд", "skolko": "Мой процесс", "konveyer": "Конвейер сайтов"}
 ROLES = [("blog", "📱 Блогер"), ("expert", "🎓 Эксперт"), ("biz", "💼 Бизнес"), ("try", "👀 Просто интересно")]
+PRODUCTS = {  # Tribute links (report 17.10)
+    "montazh": ("Курс «Автомонтаж с Claude»", "4 900 ₽", "https://web.tribute.tg/p/HdL",
+                "9 видеоуроков: сценарий, голос, сцены, субтитры, звук, обложка, публикация + набор файлов, "
+                "который собирает ролик одной командой. Программировать не нужно."),
+    "code": ("Курс «Claude Code: сайт, бот и автоматизация»", "14 900 ₽", "https://t.me/tribute/app?startapp=s19qq",
+             "9 уроков без программирования: установка, правила проекта, свой сайт, Telegram-бот, автоматизация "
+             "рутины, скиллы и MCP + шаблоны и чек-лист безопасности."),
+    "agents": ("Курс «ИИ-агенты на Claude»", "19 900 ₽", "https://t.me/tribute/app?startapp=s19qs",
+               "9 уроков: агенты, MCP, база знаний, n8n, API, безопасность и итоговый проект «ИИ-сотрудник» + 6 схем агентов."),
+    "skills": ("Набор скиллов и MCP для Claude", "2 990 ₽", "https://web.tribute.tg/p/Hho",
+               "8 готовых скиллов под рабочие задачи, шаблон своего скилла и инструкция по MCP на русском."),
+    "nulya": ("Курс «Claude с нуля для работы»", "6 900 ₽", "https://t.me/tribute/app?startapp=s19qn",
+              "9 уроков с заданиями: тексты, таблицы, документы, проекты, артефакты, скиллы + 52 шаблона промптов."),
+    "prompts": ("Промпты для Claude по профессиям", "990 ₽", "https://web.tribute.tg/p/Hhl",
+                "200 шаблонов промптов для 10 профессий: маркетинг, тексты, таблицы, юристы, Директ, SEO, SMM, продажи."),
+}
+CATALOG = "https://claudekurs.ru/kursy-claude"
+TOPIC = {}  # gift slug -> (main product, cheaper product)
+for _s in "montazh kak skolko scenariy klod posty idei".split():
+    TOPIC[_s] = ("montazh", "prompts")
+for _s in "kod sait dyry zakon dizain animaciya kalkulyator kviz magazin bot audit konveyer pravila plan otkat terminal".split():
+    TOPIC[_s] = ("code", "skills")
+for _s in "skilly ofis razbor poisk klienty arena skill ustanovka plaginy mcp agent podkluchi svodka".split():
+    TOPIC[_s] = ("agents", "skills")
+LESSON_VIDEO = "media/course/video/l03.mp4"
+LESSON_MD = "content/course/lessons/03.md"
+FOLLOWUPS = [(1, "remind"), (3, "offer"), (6, "last")]  # days after the first gift
 CFG_FILE = os.path.join(DB_DIR, "config.json")  # {"admin_id":..., "lesson_url":..., "mini_url":..., "course_url":...}
 
 _state = {"running": False, "error": None, "username": None}
@@ -128,6 +155,7 @@ def db():
     c.execute("""create table if not exists users(id integer primary key, username text, name text,
                  source text, role text, created integer, last integer, gifts text default '')""")
     c.execute("create table if not exists events(ts integer, uid integer, kind text, data text)")
+    c.execute("create table if not exists followups(uid integer, due integer, kind text, sent integer default 0)")
     return c
 
 
@@ -145,6 +173,11 @@ def md_to_tg(md):
         if code is not None:
             code.append(line)
             continue
+        if line.strip().startswith("|"):  # markdown table -> bullet rows
+            cells = [x.strip() for x in line.strip().strip("|").split("|")]
+            if all(re.fullmatch(r":?-{2,}:?", x) for x in cells if x):
+                continue
+            line = "• " + " — ".join(x for x in cells if x)
         s = html.escape(line)
         s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
         s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
@@ -192,7 +225,83 @@ def lesson_kb():
     c = _cfg()
     if c.get("lesson_url"):
         return [[{"text": "🎬 Бесплатный урок по автомонтажу", "url": c["lesson_url"]}]]
-    return [[{"text": "🎬 Хочу урок по автомонтажу", "callback_data": "lesson"}]]
+    return [[{"text": "🎬 Бесплатный урок: сценарий и хук с Claude", "callback_data": "lesson"}]]
+
+
+def topic_of(con, uid):
+    row = con.execute("select data from events where uid=? and kind='gift' order by ts desc limit 1", (uid,)).fetchone()
+    return TOPIC.get(row[0] if row else "", ("nulya", "prompts"))
+
+
+def offer_kb(keys):
+    kb = [[{"text": f"{PRODUCTS[k][0]} — {PRODUCTS[k][1]}", "url": PRODUCTS[k][2]}] for k in keys]
+    return kb + [[{"text": "Все курсы и материалы", "url": CATALOG}]]
+
+
+def offer_text(main):
+    n, price, _, what = PRODUCTS[main]
+    return f"<b>{html.escape(n)}</b> — {price}\n\n{html.escape(what)}\n\nДоступ приходит сразу после оплаты."
+
+
+def send_lesson(tok, con, uid):
+    c = _cfg()
+    cap = "🎬 <b>Урок 3. Сценарий и хук с Claude</b>\nКак за 5 минут получить сценарий рилса, который досматривают."
+    fid = c.get("lesson_file_id")
+    if fid:
+        r = api(tok, "sendVideo", chat_id=uid, video=fid, caption=cap, parse_mode="HTML")
+    else:
+        data = open(os.path.join(REPO, LESSON_VIDEO), "rb").read()
+        r = api_file(tok, "sendVideo", {"chat_id": uid, "caption": cap, "parse_mode": "HTML", "supports_streaming": "true"},
+                     {"video": ("lesson3.mp4", data, "video/mp4")})
+        v = (r.get("result") or {}).get("video") or {}
+        if v.get("file_id"):
+            c["lesson_file_id"] = v["file_id"]
+            _save_cfg(c)
+    md = open(os.path.join(REPO, LESSON_MD), encoding="utf-8").read()
+    send(tok, uid, md_to_tg(md))
+    con.execute("insert into events values(?,?,?,?)", (int(time.time()), uid, "lesson", ""))
+    con.commit()
+    main, cheap = topic_of(con, uid)
+    keys = ["montazh"] + [k for k in (main,) if k != "montazh"]
+    send(tok, uid, "Это один урок из девяти. В полном курсе — голос, сцены, субтитры, звук, обложка и сборка "
+                   "ролика одной командой.\n\n" + offer_text("montazh"), offer_kb(keys))
+
+
+def schedule_followups(con, uid):
+    if con.execute("select 1 from followups where uid=?", (uid,)).fetchone():
+        return
+    now = int(time.time())
+    for days, kind in FOLLOWUPS:
+        con.execute("insert into followups(uid,due,kind) values(?,?,?)", (uid, now + days * 86400, kind))
+    con.commit()
+
+
+def run_followups(tok, con, log):
+    now = int(time.time())
+    rows = con.execute("select rowid, uid, kind from followups where sent=0 and due<=? limit 20", (now,)).fetchall()
+    for rid, uid, kind in rows:
+        con.execute("update followups set sent=1 where rowid=?", (rid,))
+        con.commit()
+        if con.execute("select 1 from events where uid=? and kind='stop'", (uid,)).fetchone():
+            continue
+        main, cheap = topic_of(con, uid)
+        took = con.execute("select 1 from events where uid=? and kind='lesson'", (uid,)).fetchone()
+        try:
+            if kind == "remind" and not took:
+                send(tok, uid, "Привет! Вчера ты забрал подарок из ролика. Пока он свежий — забери и бесплатный урок: "
+                               "как Claude пишет сценарий и хук, чтобы рилс досматривали.", lesson_kb())
+            elif kind == "offer":
+                send(tok, uid, "Если хочешь не просто подарок, а систему — вот что подойдёт под тему, из которой ты пришёл:\n\n"
+                               + offer_text(main) + "\n\nХочешь начать с малого — " + html.escape(PRODUCTS[cheap][0])
+                               + " за " + PRODUCTS[cheap][1] + ".", offer_kb([main, cheap]))
+            elif kind == "last":
+                send(tok, uid, "Последнее напоминание от меня 🙂 Все курсы и материалы — по кнопке ниже. "
+                               "Новые подарки буду давать в роликах: пиши кодовые слова сюда.\n\n"
+                               "Не хочешь напоминаний — напиши /stop.", offer_kb([main]))
+            con.execute("insert into events values(?,?,?,?)", (now, uid, "fu_" + kind, ""))
+            con.commit()
+        except Exception as e:
+            log("followup error", type(e).__name__, str(e)[:120])
 
 
 def give(tok, con, uid, slug):
@@ -203,6 +312,7 @@ def give(tok, con, uid, slug):
     con.execute("update users set gifts=?, last=? where id=?", (",".join(sorted(gifts)), int(time.time()), uid))
     con.execute("insert into events values(?,?,?,?)", (int(time.time()), uid, "gift", slug))
     con.commit()
+    schedule_followups(con, uid)
     bridge = ("Кстати, ролик, из которого ты пришёл, не монтировал человек: озвучку, анимации, субтитры "
               "и звуки собрал код вместе с Claude. Хочешь так же?")
     if row and row[1]:
@@ -244,9 +354,7 @@ def handle(tok, con, upd):
             con.commit()
             send(tok, uid, "Принял 👌 Буду присылать примеры под тебя.", lesson_kb())
         elif data == "lesson":
-            con.execute("insert into events values(?,?,?,?)", (now, uid, "lesson_wait", ""))
-            con.commit()
-            send(tok, uid, "Записал тебя 🙌 Бесплатный урок по автомонтажу выйдет совсем скоро — пришлю сюда первым.")
+            send_lesson(tok, con, uid)
         return
     m = upd.get("message")
     if not m:
@@ -281,13 +389,23 @@ def handle(tok, con, upd):
         _save_cfg(c)
         send(tok, uid, "Ты админ бота ✅ Команды: /stats")
         return
+    if txt == "/stop":
+        con.execute("insert into events values(?,?,?,?)", (now, uid, "stop", ""))
+        con.commit()
+        send(tok, uid, "Ок, напоминаний больше не будет. Подарки по кодовым словам — как раньше 👌")
+        return
     if txt == "/stats" and c.get("admin_id") == uid:
         n = con.execute("select count(*) from users").fetchone()[0]
         by = con.execute("select source, count(*) from users group by source order by 2 desc").fetchall()
         rl = con.execute("select role, count(*) from users group by role").fetchall()
-        lw = con.execute("select count(distinct uid) from events where kind='lesson_wait'").fetchone()[0]
+        lw = con.execute("select count(distinct uid) from events where kind='lesson'").fetchone()[0]
+        gw = con.execute("select data, count(distinct uid) from events where kind='gift' group by data order by 2 desc limit 15").fetchall()
+        fo = con.execute("select kind, count(*) from events where kind like 'fu_%' group by kind").fetchall()
+        st = con.execute("select count(distinct uid) from events where kind='stop'").fetchone()[0]
         send(tok, uid, f"<b>Всего:</b> {n}\n<b>Источники:</b> " + ", ".join(f"{a or '—'}: {b}" for a, b in by) +
-             "\n<b>Кто:</b> " + ", ".join(f"{a or '—'}: {b}" for a, b in rl) + f"\n<b>Ждут урок:</b> {lw}")
+             "\n<b>Кто:</b> " + ", ".join(f"{a or '—'}: {b}" for a, b in rl) +
+             "\n<b>Слова:</b> " + ", ".join(f"{a}: {b}" for a, b in gw) +
+             f"\n<b>Взяли урок:</b> {lw}\n<b>Дожим:</b> " + ", ".join(f"{a[3:]}: {b}" for a, b in fo) + f"\n<b>Отписались:</b> {st}")
         return
     key = re.sub(r"[^a-zа-яё]", "", txt.lower())
     if key in GIFTS:
@@ -314,6 +432,10 @@ def loop(log):
     while True:
         try:
             r = api(tok, "getUpdates", offset=off, timeout=50, allowed_updates=["message", "callback_query", "channel_post", "my_chat_member"])
+            try:
+                run_followups(tok, con, log)
+            except Exception as e:
+                log("followups", type(e).__name__)
             for upd in r.get("result", []):
                 off = upd["update_id"] + 1
                 try:
