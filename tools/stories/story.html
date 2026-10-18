@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 35%,#3a2a1d 0%,#1a120c 60%,#0e0a07 100%);font-family:Inter,sans-serif;color:#f3e6d0;position:relative}
+body:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 2px,transparent 2px 6px);pointer-events:none}
+.tag{position:absolute;top:270px;left:0;right:0;text-align:center;font:600 30px Inter;letter-spacing:8px;color:#c9a46a;text-transform:uppercase}
+.title{position:absolute;left:80px;right:80px;text-align:center;font-family:Lora,serif;font-weight:700;font-size:84px;line-height:1.08;color:#f6ead6}
+.sub{position:absolute;left:100px;right:100px;text-align:center;font:500 42px/1.35 Inter;color:#e3d2b6}
+.photo{position:absolute;background:#f4ecdc;padding:26px 26px 70px;box-shadow:0 30px 60px rgba(0,0,0,.55);border-radius:4px}
+.photo img{display:block;width:100%;height:100%;object-fit:cover}
+.lbl{position:absolute;bottom:14px;left:0;right:0;text-align:center;font:600 30px Lora;color:#5a4632}
+.price{position:absolute;left:90px;right:90px;top:660px}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:30px 0;border-bottom:2px solid rgba(201,164,106,.35)}
+.row .n{font:600 48px Inter;color:#f6ead6}.row .d{font:400 32px Inter;color:#c9b493;margin-top:8px}
+.row .p{font:800 60px Inter;color:#ffd38a;white-space:nowrap}
+.row .old{font:500 36px Inter;color:#9c8a70;text-decoration:line-through;margin-right:16px}
+.free{position:absolute;left:90px;right:90px;text-align:center;font:700 44px/1.3 Inter;color:#1a120c;background:#ffd38a;border-radius:24px;padding:28px}
+.arrow{position:absolute;left:50%;transform:translateX(-50%);width:160px;height:190px}
+.pill{position:absolute;left:150px;right:150px;text-align:center;font:800 54px Inter;color:#1a120c;background:#ffd38a;border-radius:90px;padding:34px 0;box-shadow:0 0 0 10px rgba(255,211,138,.18)}
+.steps{position:absolute;left:90px;right:90px;top:700px}
+.step{display:flex;gap:36px;align-items:center;margin-bottom:64px}
+.step .k{flex:0 0 120px;height:120px;border-radius:60px;background:#ffd38a;color:#1a120c;font:800 60px Inter;display:flex;align-items:center;justify-content:center}
+.step .t{font:600 48px/1.25 Inter;color:#f6ead6}
+.icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:360px}
+.ring{position:absolute;left:190px;top:610px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,#4a3524,#1a120c);border:6px solid #c9a46a}
+</style></head><body><div id="root"></div>
+<script>
+const F = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+const R = document.getElementById('root');
+const h = (s)=>{R.insertAdjacentHTML('beforeend', s)};
+const esc = s => (s||'').replace(/\n/g,'<br>');
+if(F.tag) h(`<div class="tag">${F.tag}</div>`);
+if(F.type==='photo'){
+  const w=F.w||820, ht=F.h||1000, top=F.top||520, rot=F.rot||0;
+  h(`<div class="photo" style="left:${(1080-w)/2}px;top:${top}px;width:${w}px;height:${ht}px;transform:rotate(${rot}deg)"><img src="${F.img}"><div class="lbl">${F.lbl||''}</div></div>`);
+  if(F.title) h(`<div class="title" style="top:${F.ty||230}px">${esc(F.title)}</div>`);
+  if(F.sub) h(`<div class="sub" style="top:${F.sy||1600}px">${esc(F.sub)}</div>`);
+}
+if(F.type==='pair'){
+  h(`<div class="photo" style="left:70px;top:${F.top||600}px;width:470px;height:600px;transform:rotate(-4deg)"><img src="${F.old}"><div class="lbl">было</div></div>`);
+  h(`<div class="photo" style="left:540px;top:${(F.top||600)+90}px;width:470px;height:600px;transform:rotate(3deg)"><img src="${F.new}"><div class="lbl">стало</div></div>`);
+  if(F.title) h(`<div class="title" style="top:${F.ty||250}px">${esc(F.title)}</div>`);
+  if(F.sub) h(`<div class="sub" style="top:${F.sy||1470}px">${esc(F.sub)}</div>`);
+}
+if(F.type==='price'){
+  h(`<div class="title" style="top:${F.ty||300}px">${esc(F.title)}</div>`);
+  h(`<div class="price">${F.items.map(i=>`<div class="row"><div><div class="n">${i[0]}</div>${i[2]?`<div class="d">${i[2]}</div>`:''}</div><div>${i[3]?`<span class="old">${i[3]}</span>`:''}<span class="p">${i[1]}</span></div></div>`).join('')}</div>`);
+  if(F.free) h(`<div class="free" style="top:${F.fy||1560}px">${esc(F.free)}</div>`);
+}
+if(F.type==='steps'){
+  h(`<div class="title" style="top:${F.ty||300}px">${esc(F.title)}</div>`);
+  h(`<div class="steps">${F.items.map((t,i)=>`<div class="step"><div class="k">${i+1}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>`);
+  if(F.free) h(`<div class="free" style="top:${F.fy||1560}px">${esc(F.free)}</div>`);
+}
+if(F.type==='cta'){
+  if(F.img){const w=480,ht=600;h(`<div class="photo" style="left:300px;top:${F.top||560}px;width:${w}px;height:${ht}px;transform:rotate(-2deg)"><img src="${F.img}"><div class="lbl">${F.lbl||''}</div></div>`);}
+  h(`<div class="title" style="top:${F.ty||230}px">${esc(F.title)}</div>`);
+  if(F.sub) h(`<div class="sub" style="top:${F.sy||1380}px">${esc(F.sub)}</div>`);
+  if(F.arrow){
+    h(`<svg class="arrow" style="top:${F.ay||1480}px" viewBox="0 0 200 240"><path d="M100 230 V40 M30 110 L100 30 L170 110" stroke="#ffd38a" stroke-width="22" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
+    h(`<div class="pill" style="top:${F.py||1740}px">${F.pill||'Ссылка в профиле'}</div>`);
+  }
+}
+if(F.type==='cover'){ h(`<div class="ring"></div><div class="icon" style="color:#ffd38a">${F.icon}</div>`); }
+</script></body></html>
