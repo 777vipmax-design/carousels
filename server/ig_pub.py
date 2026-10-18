@@ -6,11 +6,14 @@ Queue: /var/lib/carousel/ig/ig.db. Worker thread publishes due posts, refreshes 
 
 Ops (via story [{"ig": op, ...}]):
   accounts                       -> list accounts (username check through /me)
-  schedule  account, kind (reel|image|carousel), media [urls], caption, at (ISO, MSK if no tz; "now"),
+  schedule  account, kind (reel|image|carousel|story), media [urls], caption, at (ISO, MSK if no tz; "now"),
             trial (bool, reels only), share_to_feed (bool, default true), cover (url, reel cover), thumb_offset (ms)
   list      [account], [limit]
   cancel    id
   retry     id
+  stats     account|"all", [limit=25], [save=true] -> media metrics (+insights if permitted), CSV in /f/ig/stats_<acc>.csv
+  account_stats account|"all", [days=7] -> account-level insights (reach, views, profile/link taps, followers)
+Stats are also collected automatically once a day (~07:00 MSK) into table stats.
 """
 import datetime
 import json
@@ -115,6 +118,9 @@ def _db():
         publish_at integer, status text, container text, media_id text, permalink text, error text,
         created integer, updated integer)""")
     c.execute("create table if not exists tokens(account text primary key, refreshed integer)")
+    c.execute("""create table if not exists stats(account text, media_id text, day text, kind text, posted text,
+        permalink text, caption text, data text, primary key(account, media_id, day))""")
+    c.execute("create table if not exists acc_stats(account text, day text, data text, primary key(account, day))")
     return c
 
 
@@ -194,8 +200,14 @@ def _publish(p):
         for k in kids:
             _wait(k, tok)
         cid = _call("POST", f"/{uid}/media", tok, {"media_type": "CAROUSEL", "children": ",".join(kids), "caption": cap})["id"]
+    elif kind == "story":
+        u = media[0]
+        if u.lower().split("?")[0].endswith((".mp4", ".mov")):
+            cid = _call("POST", f"/{uid}/media", tok, {"media_type": "STORIES", "video_url": u})["id"]
+        else:
+            cid = _call("POST", f"/{uid}/media", tok, {"media_type": "STORIES", "image_url": _jpeg(u, p["id"], 0)})["id"]
     else:
-        raise ValueError("kind: reel | image | carousel")
+        raise ValueError("kind: reel | image | carousel | story")
     _upd(p["id"], status="processing", container=cid)
     _wait(cid, tok)
     mid = _call("POST", f"/{uid}/media_publish", tok, {"creation_id": cid})["id"]
@@ -245,11 +257,105 @@ def refresh_tokens(force=False):
     return out
 
 
+# ------------------------------------------------------------------ stats
+MEDIA_METRICS = {"REELS": "views,reach,likes,comments,shares,saved,total_interactions,ig_reels_avg_watch_time",
+                 "FEED": "views,reach,likes,comments,shares,saved,total_interactions",
+                 "STORY": "views,reach,replies,navigation,shares,total_interactions"}
+
+
+def media_stats(account, limit=25, save=True):
+    name, a = _acc(account)
+    tok, uid = a["token"], a["id"]
+    items = _call("GET", f"/{uid}/media", tok, {
+        "fields": "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count",
+        "limit": str(int(limit))}).get("data", [])
+    day = datetime.datetime.now(MSK).strftime("%Y-%m-%d")
+    out, perm_err = [], ""
+    for m in items:
+        d = {"likes": m.get("like_count"), "comments": m.get("comments_count")}
+        mets = MEDIA_METRICS.get(m.get("media_product_type") or "FEED", MEDIA_METRICS["FEED"])
+        if not perm_err:
+            try:
+                r = _call("GET", f"/{m['id']}/insights", tok, {"metric": mets})
+                for it in r.get("data", []):
+                    v = it.get("values", [{}])[0].get("value") if it.get("values") else it.get("total_value", {}).get("value")
+                    d[it["name"]] = v
+            except Exception as ex:
+                msg = _scrub(ex, tok)
+                if "permission" in msg.lower() or "(#10)" in msg or "/" in msg and " 10/" in msg:
+                    perm_err = msg[:200]
+                d["insights_error"] = msg[:120]
+        row = {"id": m["id"], "type": m.get("media_product_type"), "posted": (m.get("timestamp") or "")[:16],
+               "permalink": m.get("permalink"), "caption": (m.get("caption") or "")[:50].replace("\n", " "), **d}
+        out.append(row)
+        if save:
+            with _lock, _db() as c:
+                c.execute("insert or replace into stats values(?,?,?,?,?,?,?,?)",
+                          (name, m["id"], day, row["type"], row["posted"], row["permalink"], row["caption"], json.dumps(d)))
+    if save and out:
+        try:
+            import csv
+            d = os.path.join(_files["dir"], "ig")
+            os.makedirs(d, exist_ok=True)
+            keys = ["posted", "type", "views", "reach", "likes", "comments", "shares", "saved",
+                    "total_interactions", "ig_reels_avg_watch_time", "caption", "permalink"]
+            with open(os.path.join(d, f"stats_{name}.csv"), "w", newline="", encoding="utf-8-sig") as f:
+                w = csv.writer(f, delimiter=";")
+                w.writerow(keys)
+                for r in out:
+                    w.writerow([r.get(k, "") for k in keys])
+        except Exception as ex:
+            _log("ig csv", ex)
+    res = {"account": name, "media": out, "csv": f"https://{_files['domain']}/f/ig/stats_{name}.csv"}
+    if perm_err:
+        res["insights"] = "нет прав на insights: " + perm_err
+    return res
+
+
+def account_stats(account, days=7):
+    name, a = _acc(account)
+    tok, uid = a["token"], a["id"]
+    res = {"account": name}
+    me = _call("GET", f"/{uid}", tok, {"fields": "username,followers_count,follows_count,media_count"})
+    res.update({k: me.get(k) for k in ("username", "followers_count", "media_count")})
+    since = int(time.time()) - int(days) * 86400
+    for mets in ("reach,views,profile_views,website_clicks,accounts_engaged,total_interactions,follows_and_unfollows",):
+        try:
+            r = _call("GET", f"/{uid}/insights", tok, {"metric": mets, "period": "day", "metric_type": "total_value",
+                                                        "since": str(since), "until": str(int(time.time()))})
+            for it in r.get("data", []):
+                res[it["name"]] = it.get("total_value", {}).get("value")
+        except Exception as ex:
+            res["insights_error"] = _scrub(ex, tok)[:200]
+    day = datetime.datetime.now(MSK).strftime("%Y-%m-%d")
+    with _lock, _db() as c:
+        c.execute("insert or replace into acc_stats values(?,?,?)", (name, day, json.dumps(res)))
+    return res
+
+
+def collect_all():
+    out = {}
+    for name in accounts_raw():
+        try:
+            out[name] = {"acc": account_stats(name), "media": len(media_stats(name)["media"])}
+        except Exception as ex:
+            out[name] = {"error": str(ex)[:200]}
+    return out
+
+
 # ------------------------------------------------------------------ worker
 def _loop():
     last_refresh = 0
+    last_stats_day = ""
     while True:
         try:
+            now = datetime.datetime.now(MSK)
+            if now.hour >= 7 and now.strftime("%Y-%m-%d") != last_stats_day:
+                last_stats_day = now.strftime("%Y-%m-%d")
+                with _db() as c:
+                    done = c.execute("select count(*) from acc_stats where day=?", (last_stats_day,)).fetchone()[0]
+                if not done:
+                    threading.Thread(target=collect_all, daemon=True).start()
             if time.time() - last_refresh > 6 * 3600:
                 last_refresh = time.time()
                 r = refresh_tokens()
@@ -327,9 +433,27 @@ def op(a):
         return _get(a["id"])
     if o == "get":
         return _get(a["id"])
+    if o == "stats":
+        names = list(accounts_raw()) if a.get("account", "all") == "all" else [a["account"]]
+        return [media_stats(n, int(a.get("limit", 25)), bool(a.get("save", True))) for n in names]
+    if o == "account_stats":
+        names = list(accounts_raw()) if a.get("account", "all") == "all" else [a["account"]]
+        out = []
+        for n in names:
+            try:
+                out.append(account_stats(n, int(a.get("days", 7))))
+            except Exception as ex:
+                out.append({"account": n, "error": str(ex)[:200]})
+        return out
+    if o == "history":
+        name = _acc(a["account"])[0]
+        with _db() as c:
+            return [dict(r) | {"data": json.loads(r["data"])} for r in c.execute(
+                "select media_id, day, posted, caption, data from stats where account=? order by day desc, posted desc limit ?",
+                (name, int(a.get("limit", 100))))]
     if o == "refresh":
         return refresh_tokens(force=bool(a.get("force")))
-    raise ValueError("ig: accounts | schedule | list | get | cancel | retry | refresh")
+    raise ValueError("ig: accounts | schedule | list | get | cancel | retry | refresh | stats | account_stats | history")
 
 
 def _get(pid):
