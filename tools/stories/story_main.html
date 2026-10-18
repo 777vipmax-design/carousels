@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{background:#111214;font-family:Inter,sans-serif;color:#F2F2F2;position:relative}
+body:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 900px 700px at 85% 8%,rgba(255,59,48,.16),transparent 70%),radial-gradient(ellipse 800px 600px at 10% 95%,rgba(52,199,89,.10),transparent 70%)}
+.b{position:absolute;left:84px;right:84px}
+.tag{font:800 30px Inter;letter-spacing:6px;text-transform:uppercase;color:#FF3B30}
+.tag.g{color:#34C759}
+.title{font:900 92px/1.02 Inter;letter-spacing:-2px;color:#fff}
+.title.s{font-size:78px}
+.r{color:#FF3B30}.g{color:#34C759}
+.text{font:500 44px/1.32 Inter;color:#D6D6D8}
+.text b{color:#fff;font-weight:800}
+.list>div{display:flex;gap:28px;align-items:flex-start;padding:30px 0;border-bottom:2px solid #26282C}
+.list>div:last-child{border-bottom:0}
+.list i{flex:0 0 64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;font:900 40px Inter;font-style:normal;margin-top:2px}
+.list i.x{background:rgba(255,59,48,.16);color:#FF3B30}
+.list i.v{background:rgba(52,199,89,.16);color:#34C759}
+.list p{font:500 42px/1.28 Inter;color:#D6D6D8}
+.list p b{color:#fff;font-weight:800}
+.shot{border-radius:28px;overflow:hidden;background:#fff;padding:14px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.06)}
+.shot img{display:block;width:100%;border-radius:16px}
+.big{font:900 150px/1 Inter;letter-spacing:-5px;color:#34C759}
+.note{font:500 30px/1.35 Inter;color:#8A8C92}
+.pill{display:inline-block;font:800 46px Inter;color:#111214;background:#34C759;border-radius:90px;padding:26px 54px}
+.pill.r{background:#FF3B30;color:#fff}
+.sticker{border:4px dashed rgba(255,255,255,.22);border-radius:40px;height:330px;display:flex;align-items:center;justify-content:center;font:600 34px Inter;color:rgba(255,255,255,.25)}
+.word{display:inline-block;font:900 64px Inter;letter-spacing:4px;color:#fff;background:#FF3B30;padding:10px 30px;border-radius:18px}
+</style></head><body><script>
+const f=JSON.parse(decodeURIComponent(location.hash.slice(1)));
+const md=s=>s.replace(/\*\*([\s\S]+?)\*\*/g,'<b>$1</b>').replace(/\[r\](.+?)\[\/r\]/g,'<span class="r">$1</span>').replace(/\[g\](.+?)\[\/g\]/g,'<span class="g">$1</span>').replace(/\n/g,'<br>');
+for(const k of f.blocks){const d=document.createElement('div');d.className='b';d.style.top=k.top+'px';
+ if(k.left!=null){d.style.left=k.left+'px'} if(k.right!=null){d.style.right=k.right+'px'} if(k.center)d.style.textAlign='center';
+ if(k.kind=='list'){d.classList.add('list');d.innerHTML=k.items.map(([ic,t])=>`<div><i class="${ic=='x'?'x':'v'}">${ic=='x'?'✕':'✓'}</i><p>${md(t)}</p></div>`).join('')}
+ else if(k.kind=='shot'){d.innerHTML=`<div class="shot"><img src="${k.img}"></div>`}
+ else if(k.kind=='sticker'){d.innerHTML=`<div class="sticker">${k.t||''}</div>`}
+ else {d.innerHTML=`<div class="${k.kind}${k.cls?' '+k.cls:''}">${md(k.t)}</div>`}
+ document.body.appendChild(d)}
+</script></body></html>
