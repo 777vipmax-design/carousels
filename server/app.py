@@ -1147,6 +1147,12 @@ def tool_story(a):
             return text_result(json.dumps(ig_pub.op(first), ensure_ascii=False, default=str))
         except Exception as e:
             return text_result("ig: " + type(e).__name__ + " " + str(e)[:400], err=True)
+    if first.get("yt"):  # YouTube stats: [{"yt": "auth_url"|"channels"|"stats"|"forget", ...}]
+        import yt_stats
+        try:
+            return text_result(json.dumps(yt_stats.op(first), ensure_ascii=False, default=str))
+        except Exception as e:
+            return text_result("yt: " + type(e).__name__ + " " + str(e)[:400], err=True)
     if first.get("botcheck"):  # [{"botcheck": "/opt/montage-bot/.env"}] — is a bot token there and valid? never returns it
         pth = first["botcheck"] if str(first["botcheck"]).startswith("/opt/") else "/opt/montage-bot/.env"
         try:
@@ -1399,6 +1405,20 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        if self.path.split("?")[0] == "/mcp/google/callback":
+            try:
+                import yt_stats
+                code, msg = yt_stats.callback(self.path.split("?", 1)[1] if "?" in self.path else "")
+            except Exception as e:  # noqa: BLE001
+                code, msg = 500, "Ошибка: " + str(e)[:300]
+            data = ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
+                    "<body style='font:20px sans-serif;padding:40px'>" + msg.replace("<", "&lt;") + "</body>").encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if self.path == "/health":
             self.send_response(200)
             self.end_headers()
@@ -1429,4 +1449,9 @@ if __name__ == "__main__":
         ig_pub.start(log, FILES_DIR, DOMAIN)
     except Exception as e:
         log("ig start failed", type(e).__name__)
+    try:
+        import yt_stats
+        yt_stats.start(log, FILES_DIR, DOMAIN)
+    except Exception as e:
+        log("yt start failed", type(e).__name__)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
