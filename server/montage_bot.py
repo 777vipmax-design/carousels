@@ -79,6 +79,7 @@ GIFTS = {  # start payload / typed code word -> gift file
     "dashboard": "dashboard", "дашборд": "dashboard",
     "skolko": "skolko", "сколько": "skolko",
     "konveyer": "konveyer", "конвейер": "konveyer",
+    "komanda": "komanda", "команда": "komanda",
 }
 TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instagram на ИИ", "razbor": "REA",
           "poisk": "find-skills", "klienty": "Клиенты",
@@ -87,7 +88,7 @@ TITLES = {"skilly": "5 скиллов", "ofis": "ИИ-офис", "klod": "Instag
           "ustanovka": "Установка скилла", "kak": "Как собран ролик", "plaginy": "Плагины", "dyry": "Безопасность сайта", "pravila": "CLAUDE.md", "plan": "Режим плана", "otkat": "Откат", "skill": "Первый скилл", "vybor": "Сравнение", "mcp": "Подключения MCP",
           "tarif": "Тарифы", "pamyat": "Память", "obzor": "Карта возможностей", "schet": "Защита от счёта", "zakon": "Сайт и закон", "kritik": "Разбор идеи", "dizain": "Дизайн по референсу", "animaciya": "Анимации", "kniga": "Разбор книги", "magazin": "Каталог из фото",
           "otchet": "Разбор рекламы", "audit": "SEO-проверка", "otzyvy": "Отзывы", "kp": "КП", "vakansiya": "Найм", "idei": "Контент-план", "scenariy": "Сценарий рилса", "kalkulyator": "Калькулятор", "bot": "Бот заявок", "formula": "Формулы",
-          "issleduy": "Исследование", "kviz": "Квиз", "skrin": "Скриншоты", "terminal": "Claude Code без терминала", "agent": "Задачи для агента", "doverie": "Проверка ответов", "posty": "Посты в стиле", "vozrazheniya": "Возражения", "dashboard": "Дашборд", "skolko": "Мой процесс", "konveyer": "Конвейер сайтов"}
+          "issleduy": "Исследование", "kviz": "Квиз", "skrin": "Скриншоты", "terminal": "Claude Code без терминала", "agent": "Задачи для агента", "doverie": "Проверка ответов", "posty": "Посты в стиле", "vozrazheniya": "Возражения", "dashboard": "Дашборд", "skolko": "Мой процесс", "konveyer": "Конвейер сайтов", "komanda": "5 ИИ-сотрудников"}
 ROLES = [("blog", "📱 Блогер"), ("expert", "🎓 Эксперт"), ("biz", "💼 Бизнес"), ("try", "👀 Просто интересно")]
 PRODUCTS = {  # Tribute links (report 17.10)
     "montazh": ("Курс «Автомонтаж с Claude»", "4 900 ₽", "https://web.tribute.tg/p/HdL",
@@ -107,7 +108,7 @@ PRODUCTS = {  # Tribute links (report 17.10)
 }
 CATALOG = "https://claudekurs.ru/kursy-claude"
 TOPIC = {}  # gift slug -> (main product, cheaper product)
-for _s in "montazh kak skolko scenariy klod posty idei".split():
+for _s in "montazh kak skolko scenariy klod posty idei komanda".split():
     TOPIC[_s] = ("montazh", "prompts")
 for _s in "kod sait dyry zakon dizain animaciya kalkulyator kviz magazin bot audit konveyer pravila plan otkat terminal".split():
     TOPIC[_s] = ("code", "skills")
