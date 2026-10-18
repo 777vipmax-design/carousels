@@ -64,8 +64,8 @@ def accounts_raw():
     accs = {}
     for k, v in e.items():
         if k.startswith("IG_") and k.endswith("_TOKEN"):
-            name = k[3:-6].lower()
-            accs[name] = {"id": e.get(f"IG_{name.upper()}_ID", ""), "token": v}
+            raw = k[3:-6]
+            accs[raw.lower()] = {"id": e.get(f"IG_{raw}_ID", "") or "me", "token": v, "key": k}
     return accs
 
 
@@ -233,7 +233,7 @@ def refresh_tokens(force=False):
             r = _call("GET", "https://graph.instagram.com/refresh_access_token", a["token"],
                       {"grant_type": "ig_refresh_token"})
             if r.get("access_token"):
-                e[f"IG_{name.upper()}_TOKEN"] = r["access_token"]
+                e[a["key"]] = r["access_token"]
                 changed = True
                 with _db() as c:
                     c.execute("insert or replace into tokens values(?,?)", (name, int(time.time())))
