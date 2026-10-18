@@ -88,14 +88,17 @@ def _db():
 
 
 # ------------------------------------------------------------------ oauth
-def auth_url():
+GSC_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly"
+
+
+def auth_url(kind="yt"):
     e = _env()
     if not e.get("GOOGLE_CLIENT_ID") or not e.get("GOOGLE_CLIENT_SECRET"):
         raise ValueError("нет GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET в /opt/carousel/yt.env")
     st = secrets.token_urlsafe(16)
-    _states[st] = time.time()
+    _states[st] = (time.time(), kind)
     q = {"client_id": e["GOOGLE_CLIENT_ID"], "redirect_uri": _redirect(), "response_type": "code",
-         "scope": SCOPES, "access_type": "offline", "prompt": "consent select_account",
+         "scope": GSC_SCOPE if kind == "gsc" else SCOPES, "access_type": "offline", "prompt": "consent select_account",
          "include_granted_scopes": "true", "state": st}
     return "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(q)
 
@@ -104,7 +107,10 @@ def callback(query):
     """Called from app.py for GET /mcp/google/callback. Returns (status, html)."""
     q = urllib.parse.parse_qs(query)
     st = (q.get("state") or [""])[0]
-    if st not in _states or time.time() - _states.pop(st) > 1800:
+    if st not in _states:
+        return 400, "Ссылка устарела. Попросите новую ссылку подключения."
+    t0, kind = _states.pop(st)
+    if time.time() - t0 > 1800:
         return 400, "Ссылка устарела. Попросите новую ссылку подключения."
     if q.get("error"):
         return 400, "Google вернул ошибку: " + q["error"][0]
@@ -115,6 +121,15 @@ def callback(query):
         "redirect_uri": _redirect(), "grant_type": "authorization_code"})
     if not tok.get("refresh_token"):
         return 400, "Google не выдал постоянный доступ. Откройте ссылку подключения ещё раз."
+    if kind == "gsc":
+        sites = _http("https://www.googleapis.com/webmasters/v3/sites",
+                      headers={"Authorization": "Bearer " + tok["access_token"]}).get("siteEntry", [])
+        with _lock:
+            e = _env()
+            e["GSC_REFRESH"] = tok["refresh_token"]
+            _write_env(e)
+        _log("gsc connected", len(sites))
+        return 200, f"Search Console подключён: сайтов в доступе — {len(sites)}. Окно можно закрыть."
     ch = _http("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
                headers={"Authorization": "Bearer " + tok["access_token"]})
     items = ch.get("items") or []
@@ -145,10 +160,12 @@ def _token(cid):
     if t and t[1] > time.time() + 60:
         return t[0]
     e = _env()
-    ch = _channels()[cid]
+    refresh = e.get("GSC_REFRESH") if cid == "__gsc__" else _channels()[cid]["refresh"]
+    if not refresh:
+        raise ValueError("Search Console не подключён: нужна ссылка gsc_auth_url")
     r = _http("https://oauth2.googleapis.com/token", {
         "client_id": e["GOOGLE_CLIENT_ID"], "client_secret": e["GOOGLE_CLIENT_SECRET"],
-        "refresh_token": ch["refresh"], "grant_type": "refresh_token"})
+        "refresh_token": refresh, "grant_type": "refresh_token"})
     _access[cid] = (r["access_token"], time.time() + int(r.get("expires_in", 3600)))
     return r["access_token"]
 
@@ -277,8 +294,97 @@ def start(log, files_dir, domain):
     threading.Thread(target=_loop, daemon=True, name="yt-stats").start()
 
 
+# ------------------------------------------------------------------ search console
+def _gsc(method, path, body=None):
+    url = "https://www.googleapis.com/webmasters/v3" + path if not path.startswith("http") else path
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method, headers={
+        "Authorization": "Bearer " + _token("__gsc__"), "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            return json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"HTTP {e.code} {e.read().decode('utf-8', 'replace')[:300]}")
+
+
+def gsc_sites():
+    return [{"site": x["siteUrl"], "level": x.get("permissionLevel")} for x in _gsc("GET", "/sites").get("siteEntry", [])]
+
+
+def _site(name):
+    sites = [x["site"] for x in gsc_sites()]
+    if name in sites:
+        return name
+    n = name.lower().replace("https://", "").replace("http://", "").strip("/")
+    try:
+        n_idna = n.encode("idna").decode()
+    except Exception:
+        n_idna = n
+    for s_ in sites:
+        if n in s_.lower() or n_idna in s_.lower():
+            return s_
+    raise ValueError(f"нет сайта {name} в Search Console (доступны: {', '.join(sites)})")
+
+
+def gsc_report(site, days=28, dims=("query",), limit=50, page_filter=None):
+    site = _site(site)
+    end = datetime.date.today() - datetime.timedelta(days=2)  # GSC data lags ~2 days
+    start = end - datetime.timedelta(days=int(days) - 1)
+    body = {"startDate": start.isoformat(), "endDate": end.isoformat(), "dimensions": list(dims),
+            "rowLimit": int(limit), "dataState": "final"}
+    if page_filter:
+        body["dimensionFilterGroups"] = [{"filters": [{"dimension": "page", "operator": "contains", "expression": page_filter}]}]
+    enc = urllib.parse.quote(site, safe="")
+    r = _gsc("POST", f"/sites/{enc}/searchAnalytics/query", body)
+    rows = [{**dict(zip(dims, x["keys"])), "clicks": x["clicks"], "impressions": x["impressions"],
+             "ctr": round(x["ctr"] * 100, 2), "position": round(x["position"], 1)} for x in r.get("rows", [])]
+    tot = _gsc("POST", f"/sites/{enc}/searchAnalytics/query", {k: v for k, v in body.items() if k != "dimensions"} | {"rowLimit": 1})
+    t = (tot.get("rows") or [{}])[0]
+    summary = {"site": site, "period": f"{start}..{end}", "clicks": t.get("clicks", 0), "impressions": t.get("impressions", 0),
+               "ctr": round(t.get("ctr", 0) * 100, 2), "position": round(t.get("position", 0), 1)}
+    d = os.path.join(_files["dir"], "gsc")
+    os.makedirs(d, exist_ok=True)
+    slug = _slug(site.replace("sc-domain:", "").replace("https://", "")) + "_" + "_".join(dims)
+    with open(os.path.join(d, f"{slug}.csv"), "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f, delimiter=";")
+        keys = list(dims) + ["clicks", "impressions", "ctr", "position"]
+        w.writerow(keys)
+        for r_ in rows:
+            w.writerow([r_.get(k, "") for k in keys])
+    return {"summary": summary, "rows": rows, "csv": f"https://{_files['domain']}/f/gsc/{slug}.csv"}
+
+
+def gsc_sitemaps(site):
+    site = _site(site)
+    r = _gsc("GET", f"/sites/{urllib.parse.quote(site, safe='')}/sitemaps")
+    return [{"path": x.get("path"), "submitted": x.get("lastSubmitted", "")[:10], "downloaded": x.get("lastDownloaded", "")[:10],
+             "errors": x.get("errors"), "warnings": x.get("warnings"),
+             "urls": [(c.get("type"), c.get("submitted"), c.get("indexed")) for c in x.get("contents", [])]}
+            for x in r.get("sitemap", [])]
+
+
+def gsc_inspect(site, url):
+    site = _site(site)
+    r = _gsc("POST", "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect",
+             {"inspectionUrl": url, "siteUrl": site, "languageCode": "ru"})
+    ir = r.get("inspectionResult", {}).get("indexStatusResult", {})
+    return {k: ir.get(k) for k in ("verdict", "coverageState", "indexingState", "lastCrawlTime", "pageFetchState",
+                                   "googleCanonical", "userCanonical", "robotsTxtState")}
+
+
 def op(a):
     o = a.get("yt")
+    if o == "gsc_auth_url":
+        return {"url": auth_url("gsc")}
+    if o == "gsc_sites":
+        return gsc_sites()
+    if o == "gsc":
+        dims = a.get("dims") or ["query"]
+        return gsc_report(a["site"], int(a.get("days", 28)), tuple(dims), int(a.get("limit", 50)), a.get("page"))
+    if o == "gsc_sitemaps":
+        return gsc_sitemaps(a["site"])
+    if o == "gsc_inspect":
+        return gsc_inspect(a["site"], a["url"])
     if o == "auth_url":
         return {"url": auth_url(), "redirect_uri": _redirect()}
     if o == "channels":
@@ -311,4 +417,4 @@ def op(a):
             e.pop(f"YT_{cid}_TITLE", None)
             _write_env(e)
         return "ok"
-    raise ValueError("yt: auth_url | channels | stats | forget")
+    raise ValueError("yt: auth_url | channels | stats | forget | gsc_auth_url | gsc_sites | gsc | gsc_sitemaps | gsc_inspect")
