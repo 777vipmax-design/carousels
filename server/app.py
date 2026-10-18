@@ -1141,6 +1141,12 @@ def tool_story(a):
             return text_result(json.dumps(montage_bot.admin(first["admin"], lambda u: http_get(u, timeout=120)),
                                           ensure_ascii=False))
         return text_result(json.dumps(montage_bot.status(), ensure_ascii=False))
+    if first.get("ig"):  # own Instagram publisher: [{"ig": "schedule"|"list"|"accounts"|..., ...}]
+        import ig_pub
+        try:
+            return text_result(json.dumps(ig_pub.op(first), ensure_ascii=False, default=str))
+        except Exception as e:
+            return text_result("ig: " + type(e).__name__ + " " + str(e)[:400], err=True)
     if first.get("botcheck"):  # [{"botcheck": "/opt/montage-bot/.env"}] — is a bot token there and valid? never returns it
         pth = first["botcheck"] if str(first["botcheck"]).startswith("/opt/") else "/opt/montage-bot/.env"
         try:
@@ -1418,4 +1424,9 @@ if __name__ == "__main__":
         montage_bot.start(log)
     except Exception as e:
         log("bot start failed", type(e).__name__)
+    try:
+        import ig_pub
+        ig_pub.start(log, FILES_DIR, DOMAIN)
+    except Exception as e:
+        log("ig start failed", type(e).__name__)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
