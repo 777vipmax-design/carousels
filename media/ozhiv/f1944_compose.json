@@ -1,0 +1,46 @@
+{
+ "compose": true,
+ "end": 30.5,
+ "music": "https://tempfile.aiquickdraw.com/r/d9f38239-ca85-40a7-a346-cd08e13a5043.mp3",
+ "parts": [
+  {
+   "push": true,
+   "still": "https://72-56-19-35.sslip.io/f/ozhiv-f1944/old.png",
+   "t0": 0,
+   "t1": 2.6
+  },
+  {
+   "push": true,
+   "still": "https://72-56-19-35.sslip.io/f/ozhiv-f1944/new.png",
+   "t0": 2.6,
+   "t1": 4.5
+  },
+  {
+   "t0": 4.5,
+   "t1": 10.5,
+   "video": "https://tempfile.aiquickdraw.com/ggg/users/b94acad1-d6c4-43bc-8b19-c09fa8a8bf07/generated/1019609b-706f-4ed0-a182-88f3aa7831c1/generated_video.mp4"
+  }
+ ],
+ "pop": false,
+ "start": 20,
+ "texts": [
+  [
+   0.2,
+   2.5,
+   "Фото с фронта|1944 год",
+   "Sub"
+  ],
+  [
+   2.7,
+   4.4,
+   "Вернули цвет",
+   "Sub"
+  ],
+  [
+   4.7,
+   10.2,
+   "Прадед снова с нами",
+   "Sub"
+  ]
+ ]
+}

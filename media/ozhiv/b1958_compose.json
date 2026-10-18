@@ -1,0 +1,46 @@
+{
+ "compose": true,
+ "end": 14.5,
+ "music": "https://tempfile.aiquickdraw.com/r/d9f38239-ca85-40a7-a346-cd08e13a5043.mp3",
+ "parts": [
+  {
+   "push": true,
+   "still": "https://72-56-19-35.sslip.io/f/ozhiv-b1958/old.png",
+   "t0": 0,
+   "t1": 2.6
+  },
+  {
+   "push": true,
+   "still": "https://72-56-19-35.sslip.io/f/ozhiv-b1958/new.png",
+   "t0": 2.6,
+   "t1": 4.5
+  },
+  {
+   "t0": 4.5,
+   "t1": 10.5,
+   "video": "https://tempfile.aiquickdraw.com/g/users/cf491846-b4b8-4215-99ef-9e580e3a8c22/generated/365dd460-f032-470a-a2fe-9ed877ec103a/generated_video.mp4"
+  }
+ ],
+ "pop": false,
+ "start": 4,
+ "texts": [
+  [
+   0.2,
+   2.5,
+   "Бабушке 18 лет|1958 год",
+   "Sub"
+  ],
+  [
+   2.7,
+   4.4,
+   "Восстановили",
+   "Sub"
+  ],
+  [
+   4.7,
+   10.2,
+   "И она снова улыбается",
+   "Sub"
+  ]
+ ]
+}
