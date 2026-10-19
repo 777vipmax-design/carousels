@@ -1,0 +1,46 @@
+{
+ "compose": true,
+ "end": 50.5,
+ "music": "https://tempfile.aiquickdraw.com/r/d9f38239-ca85-40a7-a346-cd08e13a5043.mp3",
+ "parts": [
+  {
+   "push": true,
+   "still": "https://72-56-19-35.sslip.io/f/ozhiv-mr1955/old.png",
+   "t0": 0,
+   "t1": 2.6
+  },
+  {
+   "push": true,
+   "still": "https://72-56-19-35.sslip.io/f/ozhiv-mr1955/new.png",
+   "t0": 2.6,
+   "t1": 4.5
+  },
+  {
+   "t0": 4.5,
+   "t1": 10.5,
+   "video": "https://tempfile.aiquickdraw.com/ggg/users/be2995eb-28eb-4a0f-b807-1f7bff86ff91/generated/6aac8fb0-8f9e-4734-be44-30e5a61faa65/generated_video.mp4"
+  }
+ ],
+ "pop": false,
+ "start": 40,
+ "texts": [
+  [
+   0.2,
+   2.5,
+   "Дедушке 19 лет|1955, флот",
+   "Sub"
+  ],
+  [
+   2.7,
+   4.4,
+   "Восстановили",
+   "Sub"
+  ],
+  [
+   4.7,
+   10.2,
+   "Деда, ты снова с нами",
+   "Sub"
+  ]
+ ]
+}
