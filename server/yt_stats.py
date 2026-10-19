@@ -326,12 +326,14 @@ def _site(name):
     raise ValueError(f"нет сайта {name} в Search Console (доступны: {', '.join(sites)})")
 
 
-def gsc_report(site, days=28, dims=("query",), limit=50, page_filter=None):
+def gsc_report(site, days=28, dims=("query",), limit=50, page_filter=None, fresh=False):
     site = _site(site)
-    end = datetime.date.today() - datetime.timedelta(days=2)  # GSC data lags ~2 days
+    # final data lags ~2 days; fresh = свежие (неокончательные) данные до сегодня, как «последние 24 часа» в GSC
+    end = datetime.date.today() - datetime.timedelta(days=0 if fresh else 2)
     start = end - datetime.timedelta(days=int(days) - 1)
+    state = ("hourly_all" if "hour" in dims else "all") if fresh else "final"
     body = {"startDate": start.isoformat(), "endDate": end.isoformat(), "dimensions": list(dims),
-            "rowLimit": int(limit), "dataState": "final"}
+            "rowLimit": int(limit), "dataState": state}
     if page_filter:
         body["dimensionFilterGroups"] = [{"filters": [{"dimension": "page", "operator": "contains", "expression": page_filter}]}]
     enc = urllib.parse.quote(site, safe="")
@@ -380,7 +382,7 @@ def op(a):
         return gsc_sites()
     if o == "gsc":
         dims = a.get("dims") or ["query"]
-        return gsc_report(a["site"], int(a.get("days", 28)), tuple(dims), int(a.get("limit", 50)), a.get("page"))
+        return gsc_report(a["site"], int(a.get("days", 28)), tuple(dims), int(a.get("limit", 50)), a.get("page"), bool(a.get("fresh")))
     if o == "gsc_sitemaps":
         return gsc_sitemaps(a["site"])
     if o == "gsc_inspect":
