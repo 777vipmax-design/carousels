@@ -68,10 +68,18 @@ def _ya_redirect():
     return f"https://{_files['domain']}/mcp/yandex/callback"
 
 
-def ya_auth_url():
+def _ya_client():
     e = yt_stats._env()
+    for k in ("YANDEX_CLIENT_ID", "YANDEX_CLIENT_SECRET"):
+        if not e.get(k) and os.environ.get(k):
+            e[k] = os.environ[k]
+    return e
+
+
+def ya_auth_url():
+    e = _ya_client()
     if not e.get("YANDEX_CLIENT_ID") or not e.get("YANDEX_CLIENT_SECRET"):
-        raise ValueError("нет YANDEX_CLIENT_ID / YANDEX_CLIENT_SECRET в /opt/carousel/yt.env")
+        raise ValueError("нет YANDEX_CLIENT_ID / YANDEX_CLIENT_SECRET (setenv.sh)")
     st = secrets.token_urlsafe(16)
     _states[st] = time.time()
     q = {"response_type": "code", "client_id": e["YANDEX_CLIENT_ID"], "redirect_uri": _ya_redirect(),
@@ -80,7 +88,7 @@ def ya_auth_url():
 
 
 def _ya_token_req(data):
-    e = yt_stats._env()
+    e = _ya_client()
     data = {**data, "client_id": e["YANDEX_CLIENT_ID"], "client_secret": e["YANDEX_CLIENT_SECRET"]}
     return yt_stats._http("https://oauth.yandex.ru/token", data)
 
