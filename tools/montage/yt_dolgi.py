@@ -45,7 +45,7 @@ def build(INT, first):
     for key,(md,hm) in zip(ORDER, schedule(first)):
         L=S[key]; M,D=md.split("-"); h,mi=map(int,hm.split(":"))
         body=[clean(L[0]["say"]),""]+["• "+clean(x["say"]) for x in L[1:-1]]+["",
-          "📌 Подходит ли вам банкротство — тест из 7 вопросов: "+SITE,
+          "📌 Подходит ли вам банкротство — тест из 7 вопросов — ссылка в шапке канала",
           "Бесплатная консультация юриста, без обещаний и гарантий.","",
           "Информация в ролике не является юридической консультацией. Условия зависят от вашей ситуации.","",
           "#банкротство #долги #кредиты #списатьдолги #shorts"]
@@ -53,7 +53,7 @@ def build(INT, first):
           "settings":[{"key":"title","value":TITLES[key]+" #shorts"},{"key":"type","value":"public"},{"key":"selfDeclaredMadeForKids","value":"no"},
                       {"key":"tags","value":[{"value":t,"label":t} for t in TAGS]}],
           "postsAndComments":[{"content":p(body),"attachments":[f"https://uploads.postiz.com/{MEDIA[key]}.mp4"]},
-                              {"content":p(["📌 Тест: подходит ли вам банкротство → "+SITE,"Бесплатная консультация юриста"]),"attachments":[]}]})
+                              {"content":p(["📌 Тест «Подходит ли вам банкротство» — ссылка в шапке канала","Бесплатная консультация юриста"]),"attachments":[]}]})
     return res
 def extra_sched():
     out=[]; day=24; si=5
