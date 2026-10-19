@@ -1147,6 +1147,12 @@ def tool_story(a):
             return text_result(json.dumps(ig_pub.op(first), ensure_ascii=False, default=str))
         except Exception as e:
             return text_result("ig: " + type(e).__name__ + " " + str(e)[:400], err=True)
+    if first.get("seo"):  # positions tracker: [{"seo": "ya_auth_url"|"sites"|"collect"|"report", ...}]
+        import seo_pos
+        try:
+            return text_result(json.dumps(seo_pos.op(first), ensure_ascii=False, default=str))
+        except Exception as e:
+            return text_result("seo: " + type(e).__name__ + " " + str(e)[:400], err=True)
     if first.get("yt"):  # YouTube stats: [{"yt": "auth_url"|"channels"|"stats"|"forget", ...}]
         import yt_stats
         try:
@@ -1405,10 +1411,15 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        if self.path.split("?")[0] == "/mcp/google/callback":
+        if self.path.split("?")[0] in ("/mcp/google/callback", "/mcp/yandex/callback"):
             try:
-                import yt_stats
-                code, msg = yt_stats.callback(self.path.split("?", 1)[1] if "?" in self.path else "")
+                qs = self.path.split("?", 1)[1] if "?" in self.path else ""
+                if self.path.startswith("/mcp/yandex/"):
+                    import seo_pos
+                    code, msg = seo_pos.ya_callback(qs)
+                else:
+                    import yt_stats
+                    code, msg = yt_stats.callback(qs)
             except Exception as e:  # noqa: BLE001
                 code, msg = 500, "Ошибка: " + str(e)[:300]
             data = ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
@@ -1454,4 +1465,9 @@ if __name__ == "__main__":
         yt_stats.start(log, FILES_DIR, DOMAIN)
     except Exception as e:
         log("yt start failed", type(e).__name__)
+    try:
+        import seo_pos
+        seo_pos.start(log)
+    except Exception as e:
+        log("seo start failed", type(e).__name__)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
