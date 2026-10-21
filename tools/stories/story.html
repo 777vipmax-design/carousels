@@ -22,6 +22,7 @@ body:after{content:"";position:absolute;inset:0;background:repeating-linear-grad
 .step .k{flex:0 0 120px;height:120px;border-radius:60px;background:#ffd38a;color:#1a120c;font:800 60px Inter;display:flex;align-items:center;justify-content:center}
 .step .t{font:600 48px/1.25 Inter;color:#f6ead6}
 .icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:360px}
+.big{position:absolute;left:0;right:0;text-align:center;font:800 64px Inter;color:#ffd38a}
 .ring{position:absolute;left:190px;top:610px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,#4a3524,#1a120c);border:6px solid #c9a46a}
 </style></head><body><div id="root"></div>
 <script>
@@ -37,8 +38,8 @@ if(F.type==='photo'){
   if(F.sub) h(`<div class="sub" style="top:${F.sy||1600}px">${esc(F.sub)}</div>`);
 }
 if(F.type==='pair'){
-  h(`<div class="photo" style="left:70px;top:${F.top||600}px;width:470px;height:600px;transform:rotate(-4deg)"><img src="${F.old}"><div class="lbl">было</div></div>`);
-  h(`<div class="photo" style="left:540px;top:${(F.top||600)+90}px;width:470px;height:600px;transform:rotate(3deg)"><img src="${F.new}"><div class="lbl">стало</div></div>`);
+  h(`<div class="photo" style="left:70px;top:${F.top||600}px;width:470px;height:600px;transform:rotate(-4deg)"><img src="${F.old}"><div class="lbl">${F.la||'было'}</div></div>`);
+  h(`<div class="photo" style="left:540px;top:${(F.top||600)+90}px;width:470px;height:600px;transform:rotate(3deg)"><img src="${F.new}"><div class="lbl">${F.lb||'стало'}</div></div>`);
   if(F.title) h(`<div class="title" style="top:${F.ty||250}px">${esc(F.title)}</div>`);
   if(F.sub) h(`<div class="sub" style="top:${F.sy||1470}px">${esc(F.sub)}</div>`);
 }
@@ -61,5 +62,6 @@ if(F.type==='cta'){
     h(`<div class="pill" style="top:${F.py||1740}px">${F.pill||'Ссылка в профиле'}</div>`);
   }
 }
+if(F.big) h(`<div class="big" style="top:${F.by||1500}px">${esc(F.big)}</div>`);
 if(F.type==='cover'){ h(`<div class="ring"></div><div class="icon" style="color:#ffd38a">${F.icon}</div>`); }
 </script></body></html>
