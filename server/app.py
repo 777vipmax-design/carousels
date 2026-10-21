@@ -1141,6 +1141,12 @@ def tool_story(a):
             return text_result(json.dumps(montage_bot.admin(first["admin"], lambda u: http_get(u, timeout=120)),
                                           ensure_ascii=False))
         return text_result(json.dumps(montage_bot.status(), ensure_ascii=False))
+    if first.get("igc"):  # Instagram comments: check | dump | preview | enable | disable | status
+        import ig_comments
+        try:
+            return text_result(json.dumps(ig_comments.op(first), ensure_ascii=False, default=str))
+        except Exception as e:
+            return text_result("igc: " + type(e).__name__ + " " + str(e)[:400], err=True)
     if first.get("ig"):  # own Instagram publisher: [{"ig": "schedule"|"list"|"accounts"|..., ...}]
         import ig_pub
         try:
@@ -1465,6 +1471,11 @@ if __name__ == "__main__":
         yt_stats.start(log, FILES_DIR, DOMAIN)
     except Exception as e:
         log("yt start failed", type(e).__name__)
+    try:
+        import ig_comments
+        ig_comments.start(log)
+    except Exception as e:
+        log("igc start failed", type(e).__name__)
     try:
         import seo_pos
         seo_pos.start(log)
