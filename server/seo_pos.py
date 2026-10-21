@@ -338,12 +338,60 @@ def sites():
     return res
 
 
+# ------------------------------------------------------------------ yandex metrika
+METRIKA = {"рассчитать-матрицу-судьбы.рф": 113592122, "zaymikredit.ru": 113659152, "записка-матроне.рф": 113591512,
+           "sostavim-dogovor.ru": 113657171, "claudekurs.ru": 113657180, "bankrotstvo-fizicheskih-lits.ru": 113658803,
+           "песни-ии.рф": 106821116, "оживить-фотографии.рф": 113592069, "rusifikaciya-avto.ru": 112126918,
+           "za-rubezhom.ru": 113690451, "ии-ветеринар.рф": 113703144, "авто-из-азии.рф": 113703135,
+           "оценка-внешности.рф": 113702617}
+
+
+def _mk(path, params, timeout=40):
+    url = "https://api-metrika.yandex.net" + path + "?" + urllib.parse.urlencode(params, doseq=True)
+    return yt_stats._http(url, headers={"Authorization": "OAuth " + _ya_tok()}, timeout=timeout)
+
+
+def ya_ping():
+    out = {}
+    for name, fn in (("webmaster", lambda: _ya("/user")), ("metrika", lambda: _mk("/management/v1/counters", {"per_page": 1}, 20))):
+        t = time.time()
+        try:
+            fn()
+            out[name] = f"ok {time.time() - t:.1f}s"
+        except Exception as ex:  # noqa: BLE001
+            out[name] = f"ошибка {time.time() - t:.1f}s: {str(ex)[:150]}"
+    return out
+
+
+def metrika(site=None, days=7):
+    res = []
+    for name, cid in METRIKA.items():
+        if site and site.lower() not in name.lower():
+            continue
+        p = {"ids": cid, "date1": f"{int(days)}daysAgo", "date2": "today",
+             "metrics": "ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:sumGoalReachesAny"}
+        try:
+            tot = _mk("/stat/v1/data", p).get("totals", [0, 0, 0, 0])
+            src = _mk("/stat/v1/data", {**p, "metrics": "ym:s:visits", "dimensions": "ym:s:lastTrafficSource",
+                                        "limit": 10}).get("data", [])
+            res.append({"site": name, "counter": cid, "visits": int(tot[0]), "users": int(tot[1]),
+                        "bounce": round(tot[2], 1), "goals": int(tot[3]),
+                        "sources": {r["dimensions"][0]["name"]: int(r["metrics"][0]) for r in src}})
+        except Exception as ex:  # noqa: BLE001
+            res.append({"site": name, "counter": cid, "error": str(ex)[:150]})
+    return res
+
+
 def op(a):
     o = a.get("seo")
     if o == "ya_auth_url":
         return {"url": ya_auth_url(), "redirect_uri": _ya_redirect()}
     if o == "sites":
         return sites()
+    if o == "ya_ping":
+        return ya_ping()
+    if o == "metrika":
+        return metrika(a.get("site"), a.get("days", 7))
     if o == "collect":
         return collect(a.get("days"), a.get("engine"))
     if o == "report":
