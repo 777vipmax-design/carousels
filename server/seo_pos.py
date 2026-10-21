@@ -374,9 +374,13 @@ def metrika(site=None, days=7):
             tot = _mk("/stat/v1/data", p).get("totals", [0, 0, 0, 0])
             src = _mk("/stat/v1/data", {**p, "metrics": "ym:s:visits", "dimensions": "ym:s:lastTrafficSource",
                                         "limit": 10}).get("data", [])
+            eng = _mk("/stat/v1/data", {**p, "metrics": "ym:s:visits,ym:s:sumGoalReachesAny",
+                                        "dimensions": "ym:s:lastSearchEngineRoot", "limit": 10}).get("data", [])
             res.append({"site": name, "counter": cid, "visits": int(tot[0]), "users": int(tot[1]),
                         "bounce": round(tot[2], 1), "goals": int(tot[3]),
-                        "sources": {r["dimensions"][0]["name"]: int(r["metrics"][0]) for r in src}})
+                        "sources": {r["dimensions"][0]["name"]: int(r["metrics"][0]) for r in src},
+                        "search_engines": {(r["dimensions"][0].get("name") or "?"): [int(r["metrics"][0]), int(r["metrics"][1])]
+                                           for r in eng}})
         except Exception as ex:  # noqa: BLE001
             res.append({"site": name, "counter": cid, "error": str(ex)[:150]})
     return res
