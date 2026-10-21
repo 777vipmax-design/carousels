@@ -19,6 +19,8 @@ body:before{content:"";position:absolute;inset:0;background:radial-gradient(elli
 .list p{font:500 42px/1.28 Inter;color:#D6D6D8}
 .list p b{color:#fff;font-weight:800}
 .shot{border-radius:28px;overflow:hidden;background:#fff;padding:14px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.06)}
+.shot.dk{background:#1b1c20;padding:0;border-radius:24px}
+.shot.dk img{border-radius:0}
 .shot img{display:block;width:100%;border-radius:16px}
 .big{font:900 150px/1 Inter;letter-spacing:-5px;color:#34C759}
 .note{font:500 30px/1.35 Inter;color:#8A8C92}
@@ -32,7 +34,7 @@ const md=s=>s.replace(/\*\*([\s\S]+?)\*\*/g,'<b>$1</b>').replace(/\[r\](.+?)\[\/
 for(const k of f.blocks){const d=document.createElement('div');d.className='b';d.style.top=k.top+'px';
  if(k.left!=null){d.style.left=k.left+'px'} if(k.right!=null){d.style.right=k.right+'px'} if(k.center)d.style.textAlign='center';
  if(k.kind=='list'){d.classList.add('list');d.innerHTML=k.items.map(([ic,t])=>`<div><i class="${ic=='x'?'x':'v'}">${ic=='x'?'✕':'✓'}</i><p>${md(t)}</p></div>`).join('')}
- else if(k.kind=='shot'){d.innerHTML=`<div class="shot"><img src="${k.img}"></div>`}
+ else if(k.kind=='shot'){d.innerHTML=`<div class="shot${k.cls?' '+k.cls:''}"><img src="${k.img}"></div>`}
  else if(k.kind=='sticker'){d.innerHTML=`<div class="sticker">${k.t||''}</div>`}
  else {d.innerHTML=`<div class="${k.kind}${k.cls?' '+k.cls:''}">${md(k.t)}</div>`}
  document.body.appendChild(d)}
