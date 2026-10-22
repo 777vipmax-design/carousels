@@ -363,6 +363,12 @@ def ya_ping():
     return out
 
 
+def counters():
+    r = _mk("/management/v1/counters", {"per_page": 1000})
+    return [{"id": c.get("id"), "site": c.get("site2", {}).get("site") or c.get("site"), "name": c.get("name")}
+            for c in r.get("counters", [])]
+
+
 def metrika(site=None, days=7):
     res = []
     for name, cid in METRIKA.items():
@@ -394,6 +400,8 @@ def op(a):
         return sites()
     if o == "ya_ping":
         return ya_ping()
+    if o == "counters":
+        return counters()
     if o == "metrika":
         return metrika(a.get("site"), a.get("days", 7))
     if o == "collect":
