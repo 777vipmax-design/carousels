@@ -130,6 +130,35 @@ SYSTEM = """Ты отвечаешь на комментарии в Instagram-а�
 Ответь строго JSON: {"action":"reply"|"skip","text":"..."}"""
 
 
+ANTHROPIC_MSG = "https://api.anthropic.com/v1/messages"
+
+
+def claude(body, timeout=90):
+    """Claude: напрямую через Anthropic (ANTHROPIC_API_KEY), если ключ есть; иначе через kie.ai."""
+    akey = os.environ.get("ANTHROPIC_API_KEY", "")
+    if akey:
+        try:
+            req = urllib.request.Request(ANTHROPIC_MSG, data=json.dumps(body).encode(), method="POST", headers={
+                "x-api-key": akey, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+        except Exception as ex:  # noqa: BLE001
+            _log("anthropic fallback to kie:", str(ex)[:150])
+    req = urllib.request.Request(KIE_MSG, data=json.dumps({**body, "stream": False}).encode(), method="POST",
+                                 headers={"Authorization": "Bearer " + os.environ.get("KIE_API_KEY", ""),
+                                          "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def ping_claude():
+    """Проверка ключа: короткий запрос, показывает, через кого прошёл ответ."""
+    via = "anthropic" if os.environ.get("ANTHROPIC_API_KEY") else "kie"
+    j = claude({"model": MODEL, "max_tokens": 20, "messages": [{"role": "user", "content": "Ответь одним словом: ок"}]})
+    txt = "".join(b.get("text", "") for b in j.get("content", []) if b.get("type") == "text")
+    return {"via": via, "model": j.get("model"), "answer": txt[:50], "usage": j.get("usage")}
+
+
 def _style(name):
     for fn in (f"{name}.md", "default.md"):
         p = os.path.join(STYLE_DIR, fn)
@@ -139,16 +168,12 @@ def _style(name):
 
 
 def _llm(name, post, user, text):
-    key = os.environ.get("KIE_API_KEY", "")
-    body = {"model": MODEL, "max_tokens": 300, "stream": False,
+    body = {"model": MODEL, "max_tokens": 300,
             "system": SYSTEM + "\n\nПРАВИЛА СТИЛЯ ВЛАДЕЛЬЦА:\n" + _style(name),
             "messages": [{"role": "user", "content":
                           f"Подпись ролика: {post[:300]}\nАвтор комментария: @{user}\n"
                           f"<comment>\n{text[:1000]}\n</comment>\nНапиши ответ."}]}
-    req = urllib.request.Request(KIE_MSG, data=json.dumps(body).encode(), method="POST",
-                                 headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=90) as r:
-        j = json.loads(r.read())
+    j = claude(body)
     if "content" not in j:
         raise RuntimeError("kie: " + json.dumps(j, ensure_ascii=False)[:200])
     raw = "".join(b.get("text", "") for b in j["content"] if b.get("type") == "text")
@@ -248,6 +273,8 @@ def op(a):
             c.execute("insert or replace into cfg values(?,?,?,?)",
                       (name, 1 if o == "enable" else 0, int(a.get("hours", 72)), int(time.time())))
         return {"account": name, "enabled": o == "enable", "hours": int(a.get("hours", 72))}
+    if o == "ping":
+        return ping_claude()
     if o == "status":
         with _db() as c:
             cfg = [dict(r) for r in c.execute("select * from cfg")]
