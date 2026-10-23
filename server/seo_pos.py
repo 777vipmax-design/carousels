@@ -507,6 +507,16 @@ def op(a):
         return ya_ping()
     if o == "counters":
         return counters()
+    if o == "metrika_raw":  # произвольный запрос к Метрике (только чтение)
+        p = {"ids": a["counter"], "metrics": a["metrics"], "date1": a.get("date1", "today"),
+             "date2": a.get("date2", "today"), "limit": a.get("limit", 50)}
+        for k in ("dimensions", "filters", "attribution", "group"):
+            if a.get(k):
+                p[k] = a[k]
+        r = _mk("/stat/v1/data", p)
+        return {"totals": r.get("totals"), "data": r.get("data", [])[:50]}
+    if o == "metrika_goals":
+        return _mk(f"/management/v1/counter/{int(a['counter'])}/goals", {}).get("goals", [])
     if o == "metrika":
         return metrika(a.get("site"), a.get("days", 7))
     if o == "collect":
