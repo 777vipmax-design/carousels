@@ -95,6 +95,7 @@ def kie_task(model, inp, max_wait=900):
     task = (res.get("data") or {}).get("taskId")
     if not task:
         raise RuntimeError(f"kie.ai createTask failed: {res}")
+    print(f"kie task {model} -> {task}", flush=True)
     t0 = time.time()
     while time.time() - t0 < max_wait:
         time.sleep(4)
@@ -106,7 +107,7 @@ def kie_task(model, inp, max_wait=900):
             return rj.get("resultUrls") or [], {"taskId": task, "credits": info.get("creditsConsumed"), "result": rj}
         if state == "fail":
             raise RuntimeError(f"kie.ai task failed: {info.get('failMsg')}")
-    raise TimeoutError("kie.ai task timeout")
+    raise TimeoutError(f"kie.ai task timeout (taskId {task}, проверить: kie_raw model _record input {{taskId}})")
 
 
 def font(weight, size):
@@ -1305,7 +1306,16 @@ def tool_put_file(a):
 
 
 def do_kie_raw(model, inp):
-    urls, info = kie_task(model, inp, max_wait=600)
+    inp = dict(inp)
+    if model == "_record":  # fetch an existing task by id
+        info = kie("GET", f"recordInfo?taskId={inp['taskId']}").get("data") or {}
+        rj = info.get("resultJson") or "{}"
+        rj = json.loads(rj) if isinstance(rj, str) else rj
+        return {"state": info.get("state"), "urls": rj.get("resultUrls") or [], "fail": info.get("failMsg"),
+                "credits": info.get("creditsConsumed")}
+    slow = any(k in model for k in ("kling", "infinitalk", "seedance", "veo", "avatar"))
+    wait = int(inp.pop("_max_wait", 5400 if slow else 600))
+    urls, info = kie_task(model, inp, max_wait=wait)
     return {"urls": urls, "info": info}
 
 
