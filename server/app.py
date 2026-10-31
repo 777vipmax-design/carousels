@@ -1073,7 +1073,7 @@ def do_compose(post, spec):
         shutil.rmtree(work, ignore_errors=True)
 
 
-def do_transcribe(post, url, lang="ru", model="small"):
+def do_transcribe(post, url, lang="ru", model="small", prompt=None):
     """Word-level speech recognition with faster-whisper (installed on first use into a private dir)."""
     import sys as _sys
     lib = "/opt/carousel/pylib"
@@ -1099,7 +1099,8 @@ def do_transcribe(post, url, lang="ru", model="small"):
     pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", src, "-f", "s16le", "-ac", "1", "-ar", "16000", "-"],
                          capture_output=True, check=True).stdout
     audio = _np.frombuffer(pcm, _np.int16).astype(_np.float32) / 32768.0
-    segs, info = m.transcribe(audio, language=lang, word_timestamps=True, vad_filter=False, beam_size=5)
+    segs, info = m.transcribe(audio, language=lang, word_timestamps=True, vad_filter=False, beam_size=5,
+                              initial_prompt=prompt or None, condition_on_previous_text=not bool(prompt))
     words = []
     for sg in segs:
         for w in (sg.words or []):
@@ -1124,7 +1125,7 @@ def tool_story(a):
         return text_result(f"job_id: {jid} — поющая голова ~5–15 мин")
     if first.get("transcribe"):  # scenes=[{"transcribe": audio_url, "lang": "ru", "model": "small"}]
         jid = start_job("stt", do_transcribe, a["post"], first["transcribe"], first.get("lang", "ru"),
-                        first.get("model", "small"))
+                        first.get("model", "small"), first.get("prompt"))
         return text_result(f"job_id: {jid} — распознавание речи ~3–10 мин")
     if first.get("zip"):  # [{"zip": {"dir/name.ext": url, ...}, "out": "kit.zip"}] -> /f/<post>/<out>
         import zipfile
