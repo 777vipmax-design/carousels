@@ -7,7 +7,7 @@ tlj = json.load(open(f'{B}/tl_{K}.json'))
 says = [x for x in tlj['timeline'] if x['kind'] == 'say']
 tl = [(x['start'], x['end']) for x in says]
 end = round(tlj['seconds'] + 0.5, 3)
-for f in ['reel.html', 'scenes_base.js', 'scenes_extra.js']: shutil.copy(f'{B}/engine/{f}', OUT)
+for f in ['reel.html', 'scenes_base.js', 'scenes_ru.js', 'scenes_extra.js']: shutil.copy(f'{B}/engine/{f}', OUT)
 open(f'{OUT}/words.js', 'w').write('const WORDS=1;const CHUNKS=' + json.dumps(subtitles(S['lines'], tl), ensure_ascii=False) + ';')
 open(f'{OUT}/script.js', 'w').write('const SCRIPT=' + json.dumps({'color': S['color'], 'lines': S['lines']}, ensure_ascii=False) + ';')
 starts = [0.0] + [round(a - 0.12, 3) for a, _ in tl[1:]]
